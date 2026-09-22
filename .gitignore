@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Builds
+.next/
+out/
+build/
+dist/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+coverage/
+.coverage
+htmlcov/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Local data
+*.sqlite3
+*.db
+data/local/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

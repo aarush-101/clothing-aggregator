@@ -1,0 +1,71 @@
+# Local development dependencies.
+#
+#   docker compose up -d          # Postgres + Redis only (recommended)
+#   docker compose --profile app up --build   # also build API + web containers
+#
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aggregator-postgres
+    environment:
+      POSTGRES_USER: aggregator
+      POSTGRES_PASSWORD: aggregator
+      POSTGRES_DB: aggregator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aggregator -d aggregator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: aggregator-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    profiles: ["app"]
+    build:
+      context: ./apps/api
+    container_name: aggregator-api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aggregator:aggregator@postgres:5432/aggregator
+      REDIS_URL: redis://redis:6379/0
+      CORS_ALLOW_ORIGINS: http://localhost:3000
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LOG_FORMAT: json
+      MOCK_INCLUDE_FLAKY_RETAILER: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    profiles: ["app"]
+    build:
+      context: ./apps/web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    container_name: aggregator-web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
