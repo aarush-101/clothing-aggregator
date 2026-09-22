@@ -3,3 +3,6 @@ node_modules
 playwright-report
 test-results
 package-lock.json
+
+# Generated and rewritten by Next.js
+next-env.d.ts

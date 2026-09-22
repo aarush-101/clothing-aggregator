@@ -59,7 +59,9 @@ class FeedConnectorConfig(BaseSettings):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env", "../../.env"),
+        # Later files win in pydantic-settings, so the app-local .env
+        # overrides the shared one at the repository root.
+        env_file=("../../.env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

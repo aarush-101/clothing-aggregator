@@ -26,12 +26,14 @@ const VISIBLE_FACET_VALUES = 6;
 
 function FacetGroup({
   id,
+  idPrefix,
   title,
   values,
   selected,
   onToggle,
 }: {
   id: string;
+  idPrefix: string;
   title: string;
   values: FacetValue[];
   selected: string[];
@@ -53,7 +55,7 @@ function FacetGroup({
       <AccordionContent>
         <ul className="space-y-2.5">
           {visible.map((facet) => {
-            const inputId = `${id}-${facet.value}`;
+            const inputId = `${idPrefix}${id}-${facet.value}`;
             return (
               <li key={facet.value} className="flex items-center gap-2.5">
                 <Checkbox
@@ -90,9 +92,20 @@ export interface FilterPanelProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
   onReset: () => void;
+  /**
+   * The panel is rendered twice - a desktop sidebar and a mobile sheet - so
+   * each instance needs its own element ids to keep `label[for]` unambiguous.
+   */
+  idPrefix?: string;
 }
 
-export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelProps) {
+export function FilterPanel({
+  facets,
+  filters,
+  onChange,
+  onReset,
+  idPrefix = '',
+}: FilterPanelProps) {
   const activeCount = countActiveFilters(filters);
   const priceRange = filters.priceRange ?? [facets.priceMin, facets.priceMax];
   const priceDisabled = facets.priceMax <= facets.priceMin;
@@ -155,26 +168,26 @@ export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelP
             <ul className="space-y-2.5">
               <li className="flex items-center gap-2.5">
                 <Checkbox
-                  id="filter-in-stock"
+                  id={`${idPrefix}filter-in-stock`}
                   checked={filters.inStockOnly}
                   onCheckedChange={(checked) =>
                     onChange({ ...filters, inStockOnly: checked === true })
                   }
                 />
-                <Label htmlFor="filter-in-stock" className="cursor-pointer">
+                <Label htmlFor={`${idPrefix}filter-in-stock`} className="cursor-pointer">
                   In stock only
                 </Label>
               </li>
               {facets.hasDiscounts ? (
                 <li className="flex items-center gap-2.5">
                   <Checkbox
-                    id="filter-on-sale"
+                    id={`${idPrefix}filter-on-sale`}
                     checked={filters.onSaleOnly}
                     onCheckedChange={(checked) =>
                       onChange({ ...filters, onSaleOnly: checked === true })
                     }
                   />
-                  <Label htmlFor="filter-on-sale" className="cursor-pointer">
+                  <Label htmlFor={`${idPrefix}filter-on-sale`} className="cursor-pointer">
                     Reduced only
                   </Label>
                 </li>
@@ -185,6 +198,7 @@ export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelP
 
         <FacetGroup
           id="brands"
+          idPrefix={idPrefix}
           title="Brand"
           values={facets.brands}
           selected={filters.brands}
@@ -192,6 +206,7 @@ export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelP
         />
         <FacetGroup
           id="retailers"
+          idPrefix={idPrefix}
           title="Retailer"
           values={facets.retailers}
           selected={filters.retailers}
@@ -199,6 +214,7 @@ export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelP
         />
         <FacetGroup
           id="colours"
+          idPrefix={idPrefix}
           title="Colour"
           values={facets.colours}
           selected={filters.colours}
@@ -206,6 +222,7 @@ export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelP
         />
         <FacetGroup
           id="sizes"
+          idPrefix={idPrefix}
           title="Size"
           values={facets.sizes}
           selected={filters.sizes}
@@ -213,6 +230,7 @@ export function FilterPanel({ facets, filters, onChange, onReset }: FilterPanelP
         />
         <FacetGroup
           id="materials"
+          idPrefix={idPrefix}
           title="Material"
           values={facets.materials}
           selected={filters.materials}

@@ -24,7 +24,9 @@ describe('buildIntentChips', () => {
   });
 
   it('renders a minimum budget as "Over $X"', () => {
-    expect(labels(makeIntent({ maximum_price: null, minimum_price: 90 }))).toContain('Over $90');
+    expect(labels(makeIntent({ maximum_price: null, minimum_price: 90 }))).toContain(
+      'Over $90',
+    );
   });
 
   it('renders a price range', () => {

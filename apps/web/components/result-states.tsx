@@ -20,8 +20,8 @@ export function EmptyResults({ query }: { query: string }) {
       <SearchX aria-hidden="true" className="mx-auto size-6 text-muted-foreground/60" />
       <h2 className="mt-4 font-serif text-xl">No matches for that search</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        We searched every connected retailer for “{query}” and nothing came back. Try
-        loosening a constraint — a wider budget, or fewer specifics.
+        We searched every connected retailer for “{query}” and nothing came back. Try loosening
+        a constraint — a wider budget, or fewer specifics.
       </p>
       <div className="mt-6 flex flex-col items-center gap-2">
         <p className="label-eyebrow">Try instead</p>
@@ -57,13 +57,7 @@ export function NoFilterMatches({ onReset }: { onReset: () => void }) {
   );
 }
 
-export function SearchFailure({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
+export function SearchFailure({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <Panel>
       <AlertTriangle aria-hidden="true" className="mx-auto size-6 text-destructive" />

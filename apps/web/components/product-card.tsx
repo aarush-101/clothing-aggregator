@@ -46,6 +46,7 @@ export function ProductCard({
       aria-labelledby={titleId}
       data-testid="product-card"
       data-group-id={group.group_id}
+      data-total-price={group.lowest_total_price}
       className={cn(
         'animate-rise group flex flex-col rounded-sm border border-border bg-card',
         'transition-colors hover:border-border-strong',
@@ -78,7 +79,7 @@ export function ProductCard({
         </div>
 
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-base font-medium tabular-nums">
+          <span className="text-base font-medium tabular-nums" data-testid="product-price">
             {formatPriceCompact(product.price, product.currency)}
           </span>
           {hasDiscount && product.original_price ? (
@@ -104,7 +105,10 @@ export function ProductCard({
         {product.available_sizes.length > 0 ? (
           <p className="text-xs text-muted-foreground">
             <span className="sr-only">Available sizes: </span>
-            {product.available_sizes.slice(0, 8).map((size) => size.toUpperCase()).join(' · ')}
+            {product.available_sizes
+              .slice(0, 8)
+              .map((size) => size.toUpperCase())
+              .join(' · ')}
           </p>
         ) : null}
 

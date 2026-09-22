@@ -72,7 +72,7 @@ export function RetailerProgress({
         {retailers.map((retailer) => (
           <li
             key={retailer.key}
-            className="flex items-center justify-between gap-3 text-sm"
+            className="flex min-w-0 items-center justify-between gap-3 text-sm"
             data-testid={`retailer-${retailer.key}`}
             data-state={retailer.state}
           >
@@ -91,14 +91,16 @@ export function RetailerProgress({
             </span>
             <span
               className={cn(
-                'shrink-0 text-xs tabular-nums',
+                'flex min-w-0 items-center gap-2 text-xs tabular-nums',
                 retailer.state === 'failed' ? 'text-destructive' : 'text-muted-foreground',
               )}
               title={retailer.state === 'failed' ? (retailer.error ?? undefined) : undefined}
             >
-              <span className="max-w-[12rem] truncate">{stateLabel(retailer)}</span>
+              <span className="truncate">{stateLabel(retailer)}</span>
               {retailer.state === 'completed' && retailer.duration_ms ? (
-                <span className="ml-2 opacity-60">{formatDuration(retailer.duration_ms)}</span>
+                <span className="shrink-0 opacity-60">
+                  {formatDuration(retailer.duration_ms)}
+                </span>
               ) : null}
             </span>
           </li>

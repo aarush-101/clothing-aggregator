@@ -294,16 +294,36 @@ class SearchEngine:
 
     # ---------------------------------------------------------------- intent
     async def _resolve_intent(self, query: str) -> Tuple[SearchIntent, str, int, List[str]]:
+        """Parse the query, reusing a cached interpretation when we have one.
+
+        The parser that produced the intent and any warnings it raised are
+        cached alongside it: "this was interpreted without AI assistance" stays
+        true on the second search, and the UI keeps telling the truth.
+        """
         query_hash = hashlib.sha256(query.strip().lower().encode("utf-8")).hexdigest()[:32]
         cached = await self._cache.get_intent(query_hash)
         if cached:
             try:
-                return (SearchIntent.model_validate(cached), "cache", 0, [])
+                envelope = cached if "intent" in cached else {"intent": cached}
+                intent = SearchIntent.model_validate(envelope["intent"])
+                return (
+                    intent,
+                    str(envelope.get("parser") or "cache"),
+                    0,
+                    list(envelope.get("warnings") or []),
+                )
             except Exception:
                 log.warning("intent.cache_invalid", query_hash=query_hash)
 
         outcome = await self._parser.parse(query)
-        await self._cache.set_intent(query_hash, outcome.intent.model_dump(mode="json"))
+        await self._cache.set_intent(
+            query_hash,
+            {
+                "intent": outcome.intent.model_dump(mode="json"),
+                "parser": outcome.parser,
+                "warnings": outcome.warnings,
+            },
+        )
         return (outcome.intent, outcome.parser, outcome.duration_ms, outcome.warnings)
 
     # --------------------------------------------------------------- fan-out

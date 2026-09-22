@@ -30,7 +30,11 @@ export function IntentChips({
         ))}
         {parser === 'deterministic' ? (
           <li>
-            <Badge variant="outline" className="font-normal" title="Parsed without AI assistance">
+            <Badge
+              variant="outline"
+              className="font-normal"
+              title="Parsed without AI assistance"
+            >
               Keyword parsing
             </Badge>
           </li>

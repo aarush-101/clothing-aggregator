@@ -29,8 +29,16 @@ export function SearchBar({
   const [value, setValue] = React.useState(initialQuery);
   const [syncedQuery, setSyncedQuery] = React.useState(initialQuery);
   const [error, setError] = React.useState<string | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const inputId = React.useId();
   const errorId = `${inputId}-error`;
+
+  // Focused imperatively rather than with the `autoFocus` attribute: React
+  // adds a client-only `caret-color` style for autofocused inputs, which
+  // produces a hydration mismatch against the server-rendered markup.
+  React.useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
 
   // Navigating to a new results page changes `initialQuery`; adjust during
   // render rather than in an effect (https://react.dev/learn/you-might-not-need-an-effect).
@@ -77,6 +85,7 @@ export function SearchBar({
           className={cn('shrink-0 text-muted-foreground', large ? 'size-5' : 'size-4')}
         />
         <input
+          ref={inputRef}
           id={inputId}
           name="q"
           type="search"
@@ -84,7 +93,6 @@ export function SearchBar({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          autoFocus={autoFocus}
           maxLength={MAX_QUERY_LENGTH}
           value={value}
           onChange={(event) => {
@@ -93,9 +101,7 @@ export function SearchBar({
           }}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          placeholder={
-            large ? 'A relaxed black linen shirt under $120…' : 'Search menswear…'
-          }
+          placeholder={large ? 'A relaxed black linen shirt under $120…' : 'Search menswear…'}
           className={cn(
             'min-w-0 flex-1 bg-transparent text-foreground outline-none',
             'placeholder:text-muted-foreground/70',

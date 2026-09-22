@@ -77,7 +77,10 @@ type Action =
  * Groups are keyed by `group_id`, so a retailer arriving late updates the
  * existing card (adding its offer) instead of duplicating it.
  */
-export function mergeGroups(existing: ProductGroup[], incoming: ProductGroup[]): ProductGroup[] {
+export function mergeGroups(
+  existing: ProductGroup[],
+  incoming: ProductGroup[],
+): ProductGroup[] {
   if (incoming.length === 0) return existing;
   const byId = new Map(existing.map((group) => [group.group_id, group]));
   for (const group of incoming) {

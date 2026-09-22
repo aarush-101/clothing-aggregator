@@ -224,8 +224,7 @@ export function sortGroups(groups: ProductGroup[], sort: SortPreference): Produc
       );
     default:
       return sorted.sort(
-        (a, b) =>
-          b.match_score - a.match_score || a.lowest_total_price - b.lowest_total_price,
+        (a, b) => b.match_score - a.match_score || a.lowest_total_price - b.lowest_total_price,
       );
   }
 }

@@ -82,7 +82,11 @@ describe('ProductCard', () => {
   it('says how many retailers stock a grouped item', () => {
     const group = makeGroup({
       offer_count: 3,
-      offers: [makeProduct(), makeProduct({ product_id: 'b' }), makeProduct({ product_id: 'c' })],
+      offers: [
+        makeProduct(),
+        makeProduct({ product_id: 'b' }),
+        makeProduct({ product_id: 'c' }),
+      ],
       retailers: ['Northbound Supply', 'Harbour & Hale', 'Meridian Menswear'],
     });
     render(<ProductCard group={group} position={1} searchId="s1" />);

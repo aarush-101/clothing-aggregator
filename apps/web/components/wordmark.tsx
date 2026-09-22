@@ -26,9 +26,7 @@ export function Wordmark({
       >
         Marle
       </span>
-      {withTagline ? (
-        <span className="label-eyebrow">Menswear search</span>
-      ) : null}
+      {withTagline ? <span className="label-eyebrow">Menswear search</span> : null}
     </Link>
   );
 }

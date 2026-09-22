@@ -18,9 +18,7 @@ describe('SearchBar', () => {
     await user.type(screen.getByRole('searchbox'), 'black linen shirt under $120');
     await user.click(screen.getByRole('button', { name: 'Search' }));
 
-    expect(push).toHaveBeenCalledWith(
-      '/search?q=black%20linen%20shirt%20under%20%24120',
-    );
+    expect(push).toHaveBeenCalledWith('/search?q=black%20linen%20shirt%20under%20%24120');
   });
 
   it('submits on Enter', async () => {

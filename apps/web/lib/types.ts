@@ -3,11 +3,7 @@
  * Keep the two in step - `docs/api.md` is the contract.
  */
 
-export type SortPreference =
-  | 'relevance'
-  | 'price_low_to_high'
-  | 'biggest_discount'
-  | 'newest';
+export type SortPreference = 'relevance' | 'price_low_to_high' | 'biggest_discount' | 'newest';
 
 export type Gender = 'men' | 'women' | 'unisex';
 
@@ -72,12 +68,7 @@ export interface ProductGroup {
   lowest_total_price: number;
 }
 
-export type RetailerState =
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'skipped';
+export type RetailerState = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 
 export interface RetailerStatus {
   key: string;

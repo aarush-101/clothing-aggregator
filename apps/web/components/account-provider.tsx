@@ -52,11 +52,7 @@ function subscribeToToken(onChange: () => void): () => void {
  * render (always null) and the client in step without a mount effect.
  */
 function useStoredToken(): string | null {
-  return React.useSyncExternalStore(
-    subscribeToToken,
-    readToken,
-    () => null,
-  );
+  return React.useSyncExternalStore(subscribeToToken, readToken, () => null);
 }
 
 export function favouriteKey(retailer: string, productId: string): string {
@@ -117,10 +113,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     enabled: Boolean(token) && available,
   });
 
-  const favourites = React.useMemo(
-    () => favouritesQuery.data ?? [],
-    [favouritesQuery.data],
-  );
+  const favourites = React.useMemo(() => favouritesQuery.data ?? [], [favouritesQuery.data]);
 
   const favouriteKeys = React.useMemo(
     () => new Set(favourites.map((item) => favouriteKey(item.retailer, item.product_id))),

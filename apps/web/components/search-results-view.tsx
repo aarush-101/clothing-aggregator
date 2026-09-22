@@ -72,12 +72,13 @@ export function SearchResultsView() {
   const filteredEverythingOut =
     settled && stream.groups.length > 0 && visibleGroups.length === 0;
 
-  const filterPanel = (
+  const renderFilterPanel = (idPrefix: string) => (
     <FilterPanel
       facets={facets}
       filters={filters}
       onChange={setFilters}
       onReset={resetFilters}
+      idPrefix={idPrefix}
     />
   );
 
@@ -96,7 +97,12 @@ export function SearchResultsView() {
     <>
       <ResultsHeader query={query} />
 
-      <main id="main" className="mx-auto max-w-[84rem] px-5 pb-20">
+      <main
+        id="main"
+        // Lets tests (and anyone debugging) see the stream's state directly.
+        data-search-phase={stream.phase}
+        className="mx-auto max-w-[84rem] px-5 pb-20"
+      >
         <div className="border-b border-border py-7">
           <p className="label-eyebrow">Your search</p>
           <h1 className="mt-2 max-w-3xl font-serif text-2xl leading-snug sm:text-3xl">
@@ -109,10 +115,7 @@ export function SearchResultsView() {
           {stream.reconnecting ? <ReconnectingNotice /> : null}
 
           {stream.isLoading || stream.failedRetailers.length > 0 ? (
-            <RetailerProgress
-              retailers={stream.activeRetailers}
-              isLoading={stream.isLoading}
-            />
+            <RetailerProgress retailers={stream.activeRetailers} isLoading={stream.isLoading} />
           ) : null}
 
           {settled ? (
@@ -131,7 +134,7 @@ export function SearchResultsView() {
         ) : (
           <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
             <aside className="hidden lg:block">
-              <div className="sticky top-24">{filterPanel}</div>
+              <div className="sticky top-24">{renderFilterPanel('')}</div>
             </aside>
 
             <div className="min-w-0">
@@ -167,7 +170,7 @@ export function SearchResultsView() {
                     </SheetTrigger>
                     <SheetContent side="bottom" className="overflow-y-auto">
                       <SheetTitle className="label-eyebrow">Filters</SheetTitle>
-                      {filterPanel}
+                      {renderFilterPanel('sheet-')}
                       <Button onClick={() => setSheetOpen(false)} className="w-full">
                         Show {pluralise(visibleGroups.length, 'item')}
                       </Button>
@@ -212,7 +215,10 @@ export function SearchResultsView() {
               )}
 
               {stream.isLoading && visibleGroups.length > 0 ? (
-                <p className="pt-8 text-center text-sm text-muted-foreground" aria-live="polite">
+                <p
+                  className="pt-8 text-center text-sm text-muted-foreground"
+                  aria-live="polite"
+                >
                   Still searching — more results may appear.
                 </p>
               ) : null}

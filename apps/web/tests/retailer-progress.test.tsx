@@ -87,9 +87,7 @@ describe('RetailerProgress', () => {
 
 describe('PartialResultsNotice', () => {
   it('renders nothing when everything succeeded', () => {
-    const { container } = render(
-      <PartialResultsNotice failedRetailers={[]} warnings={[]} />,
-    );
+    const { container } = render(<PartialResultsNotice failedRetailers={[]} warnings={[]} />);
     expect(container).toBeEmptyDOMElement();
   });
 

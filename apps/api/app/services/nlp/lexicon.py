@@ -300,6 +300,20 @@ STOPWORDS: Set[str] = {
     "male",
     "wear",
     "wearing",
+    # Instruction-shaped words are never garment attributes; excluding them
+    # stops an injection attempt from turning into search keywords.
+    "ignore",
+    "previous",
+    "prior",
+    "instruction",
+    "instructions",
+    "prompt",
+    "system",
+    "assistant",
+    "reveal",
+    "disregard",
+    "override",
+    "forget",
 }
 
 CURRENCY_SYMBOLS: Dict[str, str] = {"$": "AUD", "£": "GBP", "€": "EUR", "¥": "JPY"}

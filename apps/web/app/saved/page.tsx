@@ -10,14 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { formatPriceCompact } from '@/lib/format';
 
 export default function SavedPage() {
-  const {
-    savedSearches,
-    favourites,
-    available,
-    error,
-    removeSavedSearch,
-    unfavourite,
-  } = useAccount();
+  const { savedSearches, favourites, available, error, removeSavedSearch, unfavourite } =
+    useAccount();
 
   return (
     <div className="min-h-dvh">

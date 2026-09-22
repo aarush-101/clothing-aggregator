@@ -134,11 +134,7 @@ export function listSavedSearches(token: string): Promise<SavedSearch[]> {
   });
 }
 
-export function saveSearch(
-  token: string,
-  query: string,
-  label?: string,
-): Promise<SavedSearch> {
+export function saveSearch(token: string, query: string, label?: string): Promise<SavedSearch> {
   return request<SavedSearch>('/api/account/saved-searches', {
     method: 'POST',
     body: JSON.stringify({ query, label: label ?? null }),

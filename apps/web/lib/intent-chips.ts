@@ -61,7 +61,11 @@ export function buildIntentChips(intent: SearchIntent | null): IntentChip[] {
 
   for (const brand of intent.brands) push('brand', brand);
   for (const brand of intent.excluded_brands) {
-    chips.push({ key: `excluded:${brand}`, label: `Not ${titleCase(brand)}`, kind: 'excluded' });
+    chips.push({
+      key: `excluded:${brand}`,
+      label: `Not ${titleCase(brand)}`,
+      kind: 'excluded',
+    });
   }
 
   const destination = intent.destination_city ?? intent.destination_country;
