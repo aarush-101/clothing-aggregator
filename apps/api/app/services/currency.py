@@ -22,6 +22,10 @@ _TO_AUD: Dict[str, Decimal] = {
     "CAD": Decimal("1.11"),
     "SGD": Decimal("1.13"),
     "JPY": Decimal("0.0102"),
+    "DKK": Decimal("0.22"),
+    "SEK": Decimal("0.15"),
+    "NOK": Decimal("0.14"),
+    "CHF": Decimal("1.74"),
 }
 
 RATES_ARE_STATIC = True

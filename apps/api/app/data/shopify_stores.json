@@ -1,5 +1,5 @@
 {
-  "note": "Shopify storefronts that publish a public /products.json. Verified reachable at the time of writing. Currency and country come from each store's own /meta.json. Stores that returned 401/402/403 are deliberately absent - see docs/adding-a-connector.md.",
+  "note": "Shopify storefronts verified on 2026-09-22 to publish a public /products.json, with currency and country read from each store's own /meta.json. IMPORTANT: all of them currently return a Cloudflare bot challenge to a server-side HTTP client, so this list is a research reference, not a working source. Use it with Shopify Storefront API tokens from merchants who grant access - see docs/real-retailer-data.md.",
   "verified_at": "2026-09-22",
   "stores": [
     {

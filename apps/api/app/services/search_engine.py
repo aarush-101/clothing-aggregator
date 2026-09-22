@@ -27,8 +27,14 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.config import Settings
-from app.connectors.base import ConnectorError, ConnectorPermissionError, RetailerConnector
+from app.connectors.base import (
+    ConnectorError,
+    ConnectorPermissionError,
+    ConnectorSkipped,
+    RetailerConnector,
+)
 from app.connectors.registry import ConnectorRegistry
+from app.connectors.shopify import cold_fetch_budget, new_cold_fetch_budget
 from app.logging_config import get_logger, search_id_var
 from app.models.events import (
     EventType,
@@ -335,6 +341,8 @@ class SearchEngine:
         stream: SearchEventStream,
     ) -> List[Product]:
         semaphore = asyncio.Semaphore(self._settings.search_max_concurrent_retailers)
+        # Shared by every connector in this search; tasks inherit the context.
+        cold_fetch_budget.set(new_cold_fetch_budget(self._settings.shopify_cold_fetch_budget))
         accumulated: List[Product] = []
         published: Dict[str, Tuple[int, float]] = {}
 
@@ -344,8 +352,15 @@ class SearchEngine:
             stream.publish(EventType.RETAILER_STARTED, retailer_started_data(status))
             began = time.perf_counter()
 
-            async with semaphore:
-                products, error = await self._search_with_retries(connector, intent, status)
+            try:
+                async with semaphore:
+                    products, error = await self._search_with_retries(connector, intent, status)
+            except ConnectorSkipped as skipped:
+                status.state = "skipped"
+                status.error = skipped.reason
+                status.duration_ms = int((time.perf_counter() - began) * 1000)
+                stream.publish(EventType.RETAILER_COMPLETED, retailer_completed_data(status))
+                return
 
             status.duration_ms = int((time.perf_counter() - began) * 1000)
 
@@ -421,6 +436,7 @@ class SearchEngine:
     async def _search_with_retries(
         self, connector: RetailerConnector, intent: SearchIntent, status: RetailerStatus
     ) -> Tuple[List[Product], Optional[str]]:
+        """Returns (products, error). A ConnectorSkipped propagates upward."""
         attempts = max(1, self._settings.search_retailer_max_attempts)
         last_error = "unknown error"
 
@@ -438,6 +454,8 @@ class SearchEngine:
                 last_error = (
                     f"timed out after {self._settings.search_retailer_timeout_seconds:.0f}s"
                 )
+            except ConnectorSkipped:
+                raise  # not a failure; handled by the caller
             except ConnectorPermissionError as exc:
                 return ([], str(exc))  # configuration problem - retrying cannot help
             except ConnectorError as exc:

@@ -91,7 +91,7 @@ class Settings(BaseSettings):
     # --- Search -------------------------------------------------------------
     search_max_query_length: int = 400
     search_min_query_length: int = 2
-    search_max_concurrent_retailers: int = 6
+    search_max_concurrent_retailers: int = 12
     search_retailer_timeout_seconds: float = 8.0
     search_total_timeout_seconds: float = 25.0
     search_retailer_max_attempts: int = 2
@@ -115,10 +115,16 @@ class Settings(BaseSettings):
     mock_include_flaky_retailer: bool = False
     mock_latency_multiplier: float = 1.0
     affiliate_feeds: str = "[]"
-    enable_shopify_connectors: bool = True
+    # Off by default: see the note in app/connectors/shopify.py - every
+    # verified storefront currently returns a Cloudflare bot challenge to
+    # a server-side client. Enable only for stores that have granted access.
+    enable_shopify_connectors: bool = False
     # How long a store's published catalogue is reused before re-reading it.
     # Keeps repeat searches free for the retailer.
     shopify_catalogue_ttl_seconds: int = 1800
+    # Cold catalogue reads allowed per search. Cached stores are always
+    # searched and do not consume budget.
+    shopify_cold_fetch_budget: int = 8
     # Optional allow-list of store keys; empty means "every enabled store".
     shopify_stores: str = ""
     enable_example_public_connector: bool = False

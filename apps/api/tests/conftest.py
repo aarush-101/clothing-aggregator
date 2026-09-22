@@ -27,6 +27,9 @@ os.environ.update(
         "RATE_LIMIT_ENABLED": "false",
         "LOG_LEVEL": "WARNING",
         "ENABLED_CONNECTORS": "mock:*,sample_feed",
+        # The suite must never reach the public internet: real storefronts are
+        # exercised by a separate, explicitly opt-in live check.
+        "ENABLE_SHOPIFY_CONNECTORS": "false",
     }
 )
 

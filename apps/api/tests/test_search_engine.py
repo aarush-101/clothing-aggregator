@@ -254,7 +254,9 @@ async def test_a_slow_retailer_is_timed_out_without_blocking_the_rest(
 
 
 async def test_a_search_with_no_matching_retailers_completes_cleanly(settings, cache, broker):
-    empty_registry = ConnectorRegistry(settings.model_copy(update={"enabled_connectors": ""}))
+    empty_registry = ConnectorRegistry(
+        settings.model_copy(update={"enabled_connectors": "", "enable_shopify_connectors": False})
+    )
     engine = SearchEngine(settings, empty_registry, IntentParser(settings), cache, broker)
     _, events = await run_search(engine, broker)
     final = find(events, EventType.SEARCH_COMPLETED)[0].data

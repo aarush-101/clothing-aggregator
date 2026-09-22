@@ -5,6 +5,22 @@ Many independent menswear brands run on Shopify, which serves a standard
 storefront. This connector reads that endpoint, normalises it into our
 :class:`Product` shape, and filters it against the shopper's intent.
 
+STATUS: DISABLED BY DEFAULT - the public endpoint is not reachable server-side.
+----------------------------------------------------------------------------
+On 2026-09-22 all 93 verified storefronts in ``shopify_stores.json`` returned
+``HTTP 429`` with ``cf-mitigated: challenge`` to this connector: Cloudflare is
+challenging automated clients on the stores' behalf. Getting past that would
+need TLS-fingerprint spoofing, a headless browser or proxy rotation - all of
+which are anti-bot evasion, which this project does not do.
+
+The connector is kept because it is correct and immediately useful for the two
+legitimate routes:
+
+1. A store that has granted you access (allow-listed User-Agent or IP).
+2. Shopify's **Storefront API** with a merchant-issued access token, which is
+   the sanctioned interface and is not challenged. See
+   ``docs/real-retailer-data.md``.
+
 Boundaries this connector keeps:
 
 * It reads only the public storefront JSON a store already publishes. It does
@@ -24,6 +40,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -31,7 +48,12 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from app.config import Settings
-from app.connectors.base import ConnectorError, ConnectorHealth, RetailerConnector
+from app.connectors.base import (
+    ConnectorError,
+    ConnectorHealth,
+    ConnectorSkipped,
+    RetailerConnector,
+)
 from app.connectors.filtering import passes_coarse_filter
 from app.logging_config import get_logger
 from app.models.intent import Gender, SearchIntent
@@ -45,6 +67,31 @@ from app.services.nlp.lexicon import (
 )
 
 log = get_logger(__name__)
+
+# Set per search by the search engine. Reading a store's catalogue for the
+# first time costs a real HTTP round trip, so only a bounded number of cold
+# reads happen per search; already-cached stores are free and always run.
+# Coverage therefore grows across searches instead of making the first one
+# unusably slow - and nothing is ever fetched without a user searching.
+cold_fetch_budget: ContextVar[Optional[List[int]]] = ContextVar(
+    "shopify_cold_fetch_budget", default=None
+)
+
+
+def new_cold_fetch_budget(size: int) -> List[int]:
+    """A mutable counter shared by every connector in one search."""
+    return [max(0, size)]
+
+
+def _claim_cold_fetch() -> bool:
+    budget = cold_fetch_budget.get()
+    if budget is None:
+        return True  # no budget in force (tests, health checks)
+    if budget[0] <= 0:
+        return False
+    budget[0] -= 1
+    return True
+
 
 STORES_PATH = Path(__file__).resolve().parent.parent / "data" / "shopify_stores.json"
 
@@ -123,12 +170,10 @@ def _looks_like_menswear(product: Dict[str, Any], intent: SearchIntent) -> bool:
     if intent.gender is Gender.MEN and _WOMENS.search(haystack):
         # Multi-brand stores mix departments; "mens" beats a stray "womens" tag.
         return bool(re.search(r"\b(men|mens|men's)\b", haystack, re.I))
-    if intent.gender is Gender.WOMEN and not _WOMENS.search(haystack):
-        return False
-    return True
+    return not (intent.gender is Gender.WOMEN and not _WOMENS.search(haystack))
 
 
-def _option_values(product: Dict[str, Any], matcher: "re.Pattern[str]") -> List[str]:
+def _option_values(product: Dict[str, Any], matcher: re.Pattern) -> List[str]:
     for option in product.get("options") or []:
         if isinstance(option, dict) and matcher.match(str(option.get("name") or "")):
             return [str(value) for value in option.get("values") or []]
@@ -186,6 +231,10 @@ class ShopifyConnector(RetailerConnector):
         self._memory_expires_at: float = 0.0
 
     # ------------------------------------------------------------------ API
+    def _filter_ok(self, raw: Dict[str, Any], intent: SearchIntent) -> bool:
+        """True if this listing belongs to the department being searched."""
+        return _looks_like_menswear(raw, intent)
+
     async def search(self, intent: SearchIntent) -> List[Product]:
         raw_products = await self._catalogue()
 
@@ -231,9 +280,7 @@ class ShopifyConnector(RetailerConnector):
         if not colours:
             colours = find_terms(attribute_text, COLOUR_SYNONYMS)
 
-        materials = find_terms(
-            " ".join([attribute_text, description or ""]), MATERIAL_SYNONYMS
-        )
+        materials = find_terms(" ".join([attribute_text, description or ""]), MATERIAL_SYNONYMS)
 
         category = canonicalise(str(raw_product.get("product_type") or ""), CATEGORY_SYNONYMS)
         if not category:
@@ -305,6 +352,9 @@ class ShopifyConnector(RetailerConnector):
                 self._memory_expires_at = now + min(ttl, 300)
                 return cached
 
+        if not _claim_cold_fetch():
+            raise ConnectorSkipped("not loaded yet - will be included next search")
+
         products: List[Dict[str, Any]] = []
         for page in range(1, max(1, self.store.max_pages) + 1):
             batch = await self._fetch_page(page)
@@ -329,9 +379,7 @@ class ShopifyConnector(RetailerConnector):
 
         if response.status_code in (401, 403, 429):
             # The store is telling automated clients to stop. We stop.
-            raise ConnectorError(
-                f"store declined automated requests (HTTP {response.status_code})"
-            )
+            raise ConnectorError(f"store declined automated requests (HTTP {response.status_code})")
         if response.status_code == 404:
             raise ConnectorError("store does not publish products.json")
         if response.status_code >= 400:
@@ -363,6 +411,4 @@ def build_shopify_connectors(
     if not settings.enable_shopify_connectors:
         return []
     catalogue = stores if stores is not None else load_stores()
-    return [
-        ShopifyConnector(settings, store, cache) for store in catalogue if store.enabled
-    ]
+    return [ShopifyConnector(settings, store, cache) for store in catalogue if store.enabled]

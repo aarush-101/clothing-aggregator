@@ -31,6 +31,19 @@ class ConnectorPermissionError(ConnectorError):
     """A connector was enabled without the authorisation it requires."""
 
 
+class ConnectorSkipped(Exception):
+    """The connector deliberately did not run for this search.
+
+    Distinct from an error: nothing went wrong, the connector simply had no
+    budget to read a cold catalogue this time. Reported to the shopper as
+    "skipped", never as a failure.
+    """
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
 @dataclass
 class ConnectorHealth:
     key: str
