@@ -9,12 +9,25 @@ Full documentation lives in the repository root:
 
 ## Run it
 
+Run these **from this directory** (`apps/api`) — `pyproject.toml` lives here, not
+at the repository root.
+
 ```bash
+cd apps/api
+
 python3 -m venv .venv
+
+# Required: the pip bundled with some Python builds (macOS system Python ships
+# 21.2.4) predates PEP 660, and `pip install -e .` fails on a pyproject-only
+# project with "File setup.py or setup.cfg not found".
+.venv/bin/pip install --upgrade pip
+
 .venv/bin/pip install -e ".[dev]"
 
 .venv/bin/uvicorn app.main:app --reload --port 8000
 ```
+
+Or, from the repository root, `make install-api` does all of the above.
 
 Interactive docs at <http://localhost:8000/docs>.
 

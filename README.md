@@ -41,11 +41,18 @@ into the page as each retailer responds.
 Requirements: **Python 3.9+**, **Node 20+**. Docker is optional — the stack runs
 without Redis or PostgreSQL, and no Anthropic API key is needed.
 
+> Installing the API by hand instead of with `make`? Upgrade pip first
+> (`.venv/bin/pip install --upgrade pip`) and run it from `apps/api`. pip older
+> than 21.3 cannot do editable installs of a pyproject-only project and fails
+> with *"File setup.py or setup.cfg not found"*.
+
 ```bash
 git clone <this repo> && cd clothing-aggregator
 cp .env.example .env
 
 # 1. Dependencies (creates apps/api/.venv and installs npm packages)
+#    Use this rather than installing by hand: it upgrades pip first, which
+#    older Python builds need for editable installs.
 make install
 
 # 2. Optional: PostgreSQL + Redis
