@@ -8,13 +8,14 @@ or any mixture.
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.config import Settings
 from app.connectors.base import ConnectorHealth, RetailerConnector
 from app.connectors.example_public import ExamplePublicApiConnector
 from app.connectors.feed_connector import build_feed_connectors
 from app.connectors.mock_retailer import build_mock_connectors
+from app.connectors.shopify import build_shopify_connectors
 from app.logging_config import get_logger
 from app.models.intent import SearchIntent
 
@@ -25,8 +26,9 @@ MOCK_PREFIX = "mock:"
 
 
 class ConnectorRegistry:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, cache: Any = None) -> None:
         self._settings = settings
+        self._cache = cache
         self._connectors: Dict[str, RetailerConnector] = {}
         self._build()
 
@@ -42,6 +44,12 @@ class ConnectorRegistry:
 
         for connector in build_feed_connectors(self._settings, keys):
             self._connectors[connector.key] = connector
+
+        # Real storefronts. An allow-list narrows them; empty means all.
+        allowed = set(self._settings.shopify_store_keys)
+        for connector in build_shopify_connectors(self._settings, self._cache):
+            if not allowed or connector.key in allowed:
+                self._connectors[connector.key] = connector
 
         if self._settings.enable_example_public_connector:
             connector = ExamplePublicApiConnector(self._settings)

@@ -115,6 +115,12 @@ class Settings(BaseSettings):
     mock_include_flaky_retailer: bool = False
     mock_latency_multiplier: float = 1.0
     affiliate_feeds: str = "[]"
+    enable_shopify_connectors: bool = True
+    # How long a store's published catalogue is reused before re-reading it.
+    # Keeps repeat searches free for the retailer.
+    shopify_catalogue_ttl_seconds: int = 1800
+    # Optional allow-list of store keys; empty means "every enabled store".
+    shopify_stores: str = ""
     enable_example_public_connector: bool = False
     example_public_api_base_url: str = "https://fakestoreapi.com"
     enable_html_connectors: bool = False
@@ -195,6 +201,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
+
+    @property
+    def shopify_store_keys(self) -> List[str]:
+        return [key.strip() for key in self.shopify_stores.split(",") if key.strip()]
 
     @property
     def enabled_connector_keys(self) -> List[str]:

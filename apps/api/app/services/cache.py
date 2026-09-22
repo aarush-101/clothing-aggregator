@@ -252,6 +252,24 @@ class SearchCache:
     async def invalidate_results(self, fingerprint: str) -> None:
         await self._backend.delete(self._key("results", fingerprint))
 
+    # ------------------------------------------------ retailer catalogues
+    async def get_catalogue(self, identifier: str) -> Optional[Any]:
+        """A retailer's published catalogue, as last read."""
+        raw = await self._safe_get(self._key("catalogue", identifier))
+        if not raw:
+            return None
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+
+    async def set_catalogue(self, identifier: str, payload: Any, ttl_seconds: int) -> None:
+        await self._safe_set(
+            self._key("catalogue", identifier),
+            json.dumps(payload, default=str),
+            ttl_seconds,
+        )
+
     # ------------------------------------------------------------ search jobs
     async def get_search_snapshot(self, search_id: str) -> Optional[Dict[str, Any]]:
         raw = await self._safe_get(self._key("search", search_id))

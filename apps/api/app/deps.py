@@ -42,7 +42,7 @@ class AppContext:
     def create(cls, settings: Optional[Settings] = None) -> AppContext:
         settings = settings or get_settings()
         cache = SearchCache(settings, build_cache_backend(settings))
-        registry = ConnectorRegistry(settings)
+        registry = ConnectorRegistry(settings, cache)
         parser = IntentParser(settings)
         broker = EventBroker()
         database = build_database(settings)
