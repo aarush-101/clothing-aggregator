@@ -1,13 +1,47 @@
 # Marle — on-demand menswear search
 
-A natural-language search engine for menswear. You describe what you want in a
-sentence; it interprets the request, queries several retailers concurrently,
-normalises and de-duplicates what comes back, ranks it, and streams the results
-into the page as each retailer responds.
+> **Status: incomplete prototype.** The search pipeline and UI are implemented,
+> but no working live product source is configured in the default setup.
+> Results come from fictional retailers and a bundled demo feed. This is not
+> yet a complete menswear search service or ready for production use.
 
-> **It is not a marketplace.** There is no product catalogue in this repository
-> and no crawler on a timer. Retailers are contacted *only* when a user submits
-> a search, and results live in Redis for at most 24 hours.
+Marle aims to let you describe the menswear you want in a sentence and find
+matching products across real retailers. The prototype interprets requests,
+queries configured connectors concurrently, normalises and de-duplicates their
+results, ranks them, and streams them into the page.
+
+The intended product searches on demand, with no scheduled crawler or permanent
+live inventory database. The repository does contain a demo catalogue. Search
+results are cached for at most 24 hours, using Redis or an in-process fallback.
+
+## Implementation status
+
+- **Implemented:** prompt parsing, connector orchestration, normalisation,
+  de-duplication, ranking, caching, SSE streaming and the search UI.
+- **Demo data only by default:** `ENABLED_CONNECTORS=mock:*,sample_feed` returns
+  invented garments, prices and availability. Mock retailer links use
+  non-resolving `.example` domains, and images are placeholders.
+- **Live discovery is missing:** the app searches configured sources; it does
+  not yet discover products across the web. The Shopify connector is disabled
+  by default following reported blocking during earlier access tests.
+- **Real-world quality is unverified:** passing automated tests demonstrates
+  the pipeline against fixtures, not live retailer coverage, accurate stock,
+  shipping availability or reliable access to product data.
+
+### Proposed next step — not implemented
+
+Evaluate a shopping-search API, starting with a Serper trial, for broad product
+discovery. Supplement shopping results with ordinary web search and selective
+checks of accessible product pages. This direction requires a search-provider
+API key; it does not depend on an eBay account or eBay integration.
+
+Before choosing a provider, benchmark real menswear prompts for relevance,
+retailer diversity, working purchase links, Australian coverage, latency and
+cost. Then integrate the chosen source and represent unconfirmed stock, sizes
+and shipping explicitly. No provider integration or live benchmark has been
+completed, and comprehensive coverage or zero blocking cannot be guaranteed.
+
+The pipeline below currently runs against demo sources in the default setup:
 
 ```
 “Find me a relaxed black linen shirt under $120 that ships to Sydney”
@@ -15,7 +49,7 @@ into the page as each retailer responds.
         ├─ parse ──────────► SearchIntent {colours:[black], materials:[linen],
         │                                   fits:[relaxed], max: 120, ships_to: AU}
         ├─ select connectors ► the ones that ship to AU and stock menswear
-        ├─ fan out ─────────► 6 retailers, concurrently, 8s timeout each
+        ├─ fan out ─────────► 6 demo sources, concurrently, 8s timeout each
         ├─ normalise ───────► one Product shape, untrusted text sanitised
         ├─ de-duplicate ────► one card per garment, cheapest offer first
         ├─ rank ────────────► deterministic weighted score + match reasons
@@ -66,6 +100,8 @@ make web     # http://localhost:3000
 
 Open <http://localhost:3000> and search for
 *“Find me a relaxed black linen shirt under $120 that ships to Sydney”*.
+This demonstrates the pipeline with fictional products; it does not perform
+a live shopping search or return working retailer purchase links.
 
 ### Running without Docker
 
@@ -155,7 +191,8 @@ carries a visible last-updated time and a cached/refreshed label.
 
 ## Retailer connectors
 
-Four kinds ship in the box:
+The repository includes these connector implementations. Their presence does
+not mean a live retailer integration is configured or operational:
 
 | Connector | Status | Purpose |
 | --- | --- | --- |
@@ -163,6 +200,7 @@ Four kinds ship in the box:
 | **Generic feed** (JSON/XML) | on (bundled sample) | Declarative field mapping for affiliate feeds — Awin, Impact, CJ, Rakuten, Shopify collections. No code per network. |
 | **Example public API** | off by default | A template for a real API integration against a credential-free public API. |
 | **HTML / JSON-LD** | off, permission-gated | Reads schema.org product data from a retailer's own pages, only with written permission. Obeys robots.txt, rate-limits itself, never evades bot protection. |
+| **Shopify storefront JSON** | off by default | Implemented with offline tests, but earlier server-side access tests reported bot challenges. The researched store list is not working live coverage. |
 
 The mock data uses invented brands and retailers on the reserved `.example` TLD.
 Nothing here impersonates a real shop, and "View at retailer" links for mock
@@ -234,5 +272,6 @@ authentication — see [`docs/limitations.md`](docs/limitations.md).
 | [API reference](docs/api.md) | Every endpoint, every SSE payload, error shapes |
 | [Adding a connector](docs/adding-a-connector.md) | Step-by-step, plus the HTML-connector policy |
 | [Affiliate networks](docs/affiliate-networks.md) | Awin, Impact, CJ, Rakuten and direct integrations |
+| [Retailer-data research](docs/real-retailer-data.md) | Earlier access findings and source options; its eBay-first recommendation is superseded by the proposed approach above |
 | [Deployment](docs/deployment.md) | Vercel, Railway/Render/Fly, Neon/Supabase, Upstash |
 | [Limitations](docs/limitations.md) | Known gaps and recommended next steps |
