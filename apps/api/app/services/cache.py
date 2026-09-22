@@ -74,7 +74,15 @@ class MemoryCacheBackend(CacheBackend):
 
     def __init__(self) -> None:
         self._store: Dict[str, Tuple[str, float]] = {}
-        self._lock = asyncio.Lock()
+        # Created lazily: the backend may be constructed before an event loop
+        # is running (Python 3.9 raises if a Lock is made outside one).
+        self._lock_instance: Optional[asyncio.Lock] = None
+
+    @property
+    def _lock(self) -> asyncio.Lock:
+        if self._lock_instance is None:
+            self._lock_instance = asyncio.Lock()
+        return self._lock_instance
 
     def _expired(self, expires_at: float) -> bool:
         return expires_at > 0 and expires_at < time.time()

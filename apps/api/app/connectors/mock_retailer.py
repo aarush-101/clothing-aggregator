@@ -23,7 +23,7 @@ from app.config import Settings
 from app.connectors.base import ConnectorError, ConnectorHealth, RetailerConnector
 from app.models.intent import SearchIntent
 from app.models.product import Product, utcnow
-from app.services.nlp.lexicon import canonicalise_all, COLOUR_SYNONYMS, MATERIAL_SYNONYMS
+from app.services.nlp.lexicon import COLOUR_SYNONYMS, MATERIAL_SYNONYMS, canonicalise_all
 
 CATALOGUE_PATH = Path(__file__).resolve().parent.parent / "data" / "mock_catalogue.json"
 
@@ -169,8 +169,7 @@ class FlakyMockConnector(MockRetailerConnector):
 def build_mock_connectors(settings: Settings) -> List[RetailerConnector]:
     catalogue = load_catalogue()
     connectors: List[RetailerConnector] = [
-        MockRetailerConnector(settings, key, meta)
-        for key, meta in catalogue["retailers"].items()
+        MockRetailerConnector(settings, key, meta) for key, meta in catalogue["retailers"].items()
     ]
     if settings.mock_include_flaky_retailer:
         connectors.append(FlakyMockConnector(settings))
@@ -182,10 +181,10 @@ def mock_retailer_keys() -> List[str]:
 
 
 __all__ = [
-    "MockRetailerConnector",
     "FlakyMockConnector",
+    "MockRetailerConnector",
     "build_mock_connectors",
-    "mock_retailer_keys",
     "load_catalogue",
+    "mock_retailer_keys",
     "random",
 ]

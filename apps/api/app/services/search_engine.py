@@ -364,8 +364,7 @@ class SearchEngine:
                     changed = [
                         group
                         for group in ranked
-                        if published.get(group.group_id)
-                        != (group.offer_count, group.match_score)
+                        if published.get(group.group_id) != (group.offer_count, group.match_score)
                     ]
                     for group in ranked:
                         published[group.group_id] = (group.offer_count, group.match_score)
@@ -383,9 +382,7 @@ class SearchEngine:
             await self._record_connector_result(connector, status)
 
         tasks = [asyncio.create_task(run_one(connector)) for connector in connectors]
-        _, pending = await asyncio.wait(
-            tasks, timeout=self._settings.search_total_timeout_seconds
-        )
+        _, pending = await asyncio.wait(tasks, timeout=self._settings.search_total_timeout_seconds)
         if pending:
             for task in pending:
                 task.cancel()

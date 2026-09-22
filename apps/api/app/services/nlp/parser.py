@@ -66,13 +66,13 @@ class IntentParser:
             warnings.append("AI query understanding was unavailable; used keyword parsing.")
             return self._finish(deterministic, "deterministic", started, warnings)
 
-        intent = self._backfill(intent, deterministic)
+        # Emptiness is judged on the model's own output, before backfilling -
+        # otherwise a backfilled price would disguise an empty interpretation.
         if not self._has_signal(intent) and self._has_signal(deterministic):
-            # The model returned an empty interpretation but the regex parser
-            # found real constraints - prefer the one with information in it.
             log.info("intent.llm_empty_using_fallback")
             return self._finish(deterministic, "deterministic", started, warnings)
 
+        intent = self._backfill(intent, deterministic)
         return self._finish(intent, "anthropic", started, warnings)
 
     @staticmethod

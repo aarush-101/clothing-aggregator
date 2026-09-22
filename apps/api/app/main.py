@@ -88,9 +88,7 @@ def create_app() -> FastAPI:
         try:
             response = await call_next(request)
         except Exception:
-            log.exception(
-                "http.unhandled_error", method=request.method, path=request.url.path
-            )
+            log.exception("http.unhandled_error", method=request.method, path=request.url.path)
             raise
         duration_ms = int((time.perf_counter() - started) * 1000)
         response.headers["X-Request-ID"] = request_id
@@ -106,9 +104,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def global_rate_limit(request: Request, call_next):
-        if request.method == "OPTIONS" or request.url.path.startswith(
-            RATE_LIMIT_EXEMPT_PREFIXES
-        ):
+        if request.method == "OPTIONS" or request.url.path.startswith(RATE_LIMIT_EXEMPT_PREFIXES):
             return await call_next(request)
         context: AppContext = getattr(request.app.state, "context", None)
         if context is None:
@@ -131,8 +127,10 @@ def create_app() -> FastAPI:
                 "error": "invalid_request",
                 "detail": "The request body was not valid.",
                 "fields": [
-                    {"field": ".".join(str(p) for p in err.get("loc", [])[1:]),
-                     "message": err.get("msg", "")}
+                    {
+                        "field": ".".join(str(p) for p in err.get("loc", [])[1:]),
+                        "message": err.get("msg", ""),
+                    }
                     for err in exc.errors()[:10]
                 ],
             },

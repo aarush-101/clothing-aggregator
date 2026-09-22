@@ -21,6 +21,7 @@ See ``docs/adding-a-connector.md`` for the policy in full.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import time
 import urllib.robotparser
@@ -81,10 +82,9 @@ class _JsonLdCollector(HTMLParser):
 def extract_jsonld_products(html: str) -> List[Dict[str, Any]]:
     """Return every schema.org Product object found in the page."""
     collector = _JsonLdCollector()
-    try:
+    # Malformed markup is normal in the wild - keep whatever was collected.
+    with contextlib.suppress(Exception):
         collector.feed(html)
-    except Exception:  # malformed markup - keep whatever we collected
-        pass
 
     products: List[Dict[str, Any]] = []
 
@@ -193,9 +193,7 @@ class HtmlRetailerConnector(RetailerConnector):
             response = await client.get(url)
             if response.status_code in (401, 403, 429):
                 # The retailer is telling us to stop. We stop.
-                raise ConnectorError(
-                    f"retailer declined the request (HTTP {response.status_code})"
-                )
+                raise ConnectorError(f"retailer declined the request (HTTP {response.status_code})")
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             raise ConnectorError(f"HTTP {exc.response.status_code}") from exc

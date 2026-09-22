@@ -85,9 +85,7 @@ class RetailerConnector(abc.ABC):
             return False
         if self.genders and intent.gender.value not in self.genders:
             return False
-        if self.key in intent.excluded_brands:
-            return False
-        return True
+        return self.key not in intent.excluded_brands
 
     @abc.abstractmethod
     async def search(self, intent: SearchIntent) -> List[Product]:
@@ -101,8 +99,11 @@ class RetailerConnector(abc.ABC):
         """Cheap liveness probe. Override for network-backed connectors."""
         return ConnectorHealth(key=self.key, name=self.display_name, healthy=True)
 
-    async def aclose(self) -> None:
-        """Release any long-lived resources (HTTP clients, etc.)."""
+    async def aclose(self) -> None:  # noqa: B027 - optional hook, not abstract
+        """Release any long-lived resources (HTTP clients, etc.).
+
+        Deliberately concrete: most connectors hold nothing to release.
+        """
 
     # -------------------------------------------------------------- helpers
     def affiliate_url_for(self, product_url: str, product_id: str) -> str:

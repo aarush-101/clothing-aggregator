@@ -63,9 +63,7 @@ class AccountRepository:
         if self._db is None or not token:
             return None
         async with self._db.session() as session:
-            result = await session.execute(
-                select(User).where(User.token_hash == hash_token(token))
-            )
+            result = await session.execute(select(User).where(User.token_hash == hash_token(token)))
             user = result.scalar_one_or_none()
             if user is not None:
                 user.last_seen_at = datetime.now(timezone.utc)
@@ -73,7 +71,12 @@ class AccountRepository:
 
     # -------------------------------------------------------- saved searches
     async def save_search(
-        self, user_id: str, query: str, intent: Dict[str, Any], fingerprint: str, label: str = None
+        self,
+        user_id: str,
+        query: str,
+        intent: Dict[str, Any],
+        fingerprint: str,
+        label: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         if self._db is None:
             return None

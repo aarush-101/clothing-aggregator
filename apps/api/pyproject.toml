@@ -55,10 +55,17 @@ extend-exclude = [".venv", "alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
-ignore = ["B008", "RUF012"]
+ignore = [
+    "B008",    # FastAPI's Depends() default arguments are idiomatic
+    "RUF012",  # class-level mutable defaults are used for connector metadata
+    # The package supports Python 3.9, so typing.List/Dict/Optional must stay
+    # at runtime (Pydantic resolves annotations by evaluating them).
+    "UP006",
+    "UP007",
+    "UP035",
+]
 
 [tool.ruff.lint.pyupgrade]
-# Keep Optional[...]/List[...] so the package runs on Python 3.9.
 keep-runtime-typing = true
 
 [tool.mypy]

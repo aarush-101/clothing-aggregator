@@ -39,7 +39,7 @@ class AppContext:
     database: Optional[Database]
 
     @classmethod
-    def create(cls, settings: Optional[Settings] = None) -> "AppContext":
+    def create(cls, settings: Optional[Settings] = None) -> AppContext:
         settings = settings or get_settings()
         cache = SearchCache(settings, build_cache_backend(settings))
         registry = ConnectorRegistry(settings)
@@ -101,9 +101,7 @@ def get_app_settings(context: AppContext = Depends(get_context)) -> Settings:
     return context.settings
 
 
-async def get_optional_user(
-    request: Request, accounts: AccountRepository = Depends(get_accounts)
-):
+async def get_optional_user(request: Request, accounts: AccountRepository = Depends(get_accounts)):
     """Resolve the bearer token to a user, or None.
 
     Anonymous use is a first-class path: every account feature is additive.

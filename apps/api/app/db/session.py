@@ -10,10 +10,19 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.sql import text
 
 from app.config import Settings
+
+# Imported for its side effect: the ORM classes must be registered on
+# Base.metadata before create_all() or Alembic autogenerate can see them.
+from app.db import tables as _tables  # noqa: F401
 from app.db.base import Base
 from app.logging_config import get_logger
 

@@ -54,7 +54,9 @@ class SearchEvent(BaseModel):
 # --------------------------------------------------------------------------
 
 
-def search_started_data(query: str, cache_state: str, retailers: List[RetailerStatus]) -> Dict[str, Any]:
+def search_started_data(
+    query: str, cache_state: str, retailers: List[RetailerStatus]
+) -> Dict[str, Any]:
     return {
         "query": query,
         "cache_state": cache_state,

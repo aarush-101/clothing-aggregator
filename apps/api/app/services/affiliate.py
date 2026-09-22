@@ -30,7 +30,7 @@ def build_subid(prefix: str, retailer: str, product_id: str) -> str:
     Deliberately independent of the search that produced it so that cached
     results stay valid; the search id is recorded on the click event instead.
     """
-    digest = hashlib.sha1(f"{retailer}:{product_id}".encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha1(f"{retailer}:{product_id}".encode()).hexdigest()[:12]
     raw = f"{prefix}-{retailer}-{digest}"
     return _SUBID_SAFE.sub("-", raw)[:MAX_SUBID_LENGTH]
 
@@ -52,9 +52,7 @@ def build_affiliate_url(
         return safe_product_url
 
     subid = build_subid(subid_prefix, retailer, product_id)
-    expanded = template.replace("{url}", quote(safe_product_url, safe="")).replace(
-        "{subid}", subid
-    )
+    expanded = template.replace("{url}", quote(safe_product_url, safe="")).replace("{subid}", subid)
     safe_affiliate_url = sanitise_url(expanded)
     if not safe_affiliate_url:
         # A broken template must never break the product listing.

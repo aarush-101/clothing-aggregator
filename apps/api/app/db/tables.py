@@ -26,7 +26,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, GUID, JSONColumn, created_at_column, uuid_pk
+from app.db.base import GUID, Base, JSONColumn, created_at_column, uuid_pk
 
 
 class User(Base):
@@ -47,14 +47,12 @@ class User(Base):
     # Only the hash of the bearer token is stored, never the token itself.
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     created_at: Mapped[datetime] = created_at_column()
-    last_seen_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    saved_searches: Mapped[List["SavedSearch"]] = relationship(
+    saved_searches: Mapped[List[SavedSearch]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-    favourites: Mapped[List["Favourite"]] = relationship(
+    favourites: Mapped[List[Favourite]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -77,9 +75,7 @@ class SavedSearch(Base):
     # Reserved for the price/restock alerts described in the roadmap.
     alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = created_at_column()
-    last_run_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="saved_searches")
 

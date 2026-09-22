@@ -43,8 +43,10 @@ _AMOUNT = r"(?:\$|£|€|¥)?\s?(\d[\d,]*(?:\.\d{1,2})?)\s?(k\b)?"
 
 _RANGE_PATTERNS = [
     re.compile(r"\bbetween\s+" + _AMOUNT + r"\s+and\s+" + _AMOUNT, re.I),
-    re.compile(r"\bfrom\s+" + _AMOUNT + r"\s+(?:to|-|–)\s+" + _AMOUNT, re.I),
-    re.compile(_AMOUNT + r"\s*(?:-|–|to)\s*" + _AMOUNT, re.I),
+    # The en dashes in these patterns are intentional: shoppers paste price
+    # ranges straight out of retailer pages, which use them.
+    re.compile(r"\bfrom\s+" + _AMOUNT + r"\s+(?:to|-|–)\s+" + _AMOUNT, re.I),  # noqa: RUF001
+    re.compile(_AMOUNT + r"\s*(?:-|–|to)\s*" + _AMOUNT, re.I),  # noqa: RUF001
 ]
 _MAX_PATTERNS = [
     re.compile(
@@ -55,7 +57,10 @@ _MAX_PATTERNS = [
     re.compile(_AMOUNT + r"\s*(?:or less|or under|max)\b", re.I),
 ]
 _MIN_PATTERNS = [
-    re.compile(r"\b(?:over|above|more than|at least|min(?:imum)?|starting (?:at|from))\s+" + _AMOUNT, re.I),
+    re.compile(
+        r"\b(?:over|above|more than|at least|min(?:imum)?|starting (?:at|from))\s+" + _AMOUNT,
+        re.I,
+    ),
 ]
 _APPROX_PATTERNS = [
     re.compile(r"\b(?:around|about|approximately|circa|roughly|near)\s+" + _AMOUNT, re.I),
@@ -85,13 +90,55 @@ _BRAND_EXCLUSION_TRIGGERS = re.compile(
 
 # Capitalised words that are never brands.
 _BRAND_BLOCKLIST = {
-    "i", "find", "me", "a", "an", "the", "show", "looking", "need", "want",
-    "sydney", "melbourne", "brisbane", "perth", "adelaide", "australia",
-    "london", "new york", "nyc", "singapore", "auckland", "canada", "japan",
-    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-    "summer", "winter", "autumn", "spring", "aud", "usd", "gbp", "eur",
-    "black", "white", "cream", "navy", "grey", "gray", "beige", "olive",
-    "medium", "small", "large",
+    "i",
+    "find",
+    "me",
+    "a",
+    "an",
+    "the",
+    "show",
+    "looking",
+    "need",
+    "want",
+    "sydney",
+    "melbourne",
+    "brisbane",
+    "perth",
+    "adelaide",
+    "australia",
+    "london",
+    "new york",
+    "nyc",
+    "singapore",
+    "auckland",
+    "canada",
+    "japan",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "summer",
+    "winter",
+    "autumn",
+    "spring",
+    "aud",
+    "usd",
+    "gbp",
+    "eur",
+    "black",
+    "white",
+    "cream",
+    "navy",
+    "grey",
+    "gray",
+    "beige",
+    "olive",
+    "medium",
+    "small",
+    "large",
 }
 
 _DESTINATION_TRIGGER = re.compile(
@@ -104,8 +151,12 @@ _POSTCODE = re.compile(
     re.I,
 )
 
-_CHEAP_HINTS = re.compile(r"\b(cheap|cheaper|cheapest|affordable|budget|bargain|best price)\b", re.I)
-_DISCOUNT_HINTS = re.compile(r"\b(sale|discount|discounted|reduced|markdown|clearance|deal)\b", re.I)
+_CHEAP_HINTS = re.compile(
+    r"\b(cheap|cheaper|cheapest|affordable|budget|bargain|best price)\b", re.I
+)
+_DISCOUNT_HINTS = re.compile(
+    r"\b(sale|discount|discounted|reduced|markdown|clearance|deal)\b", re.I
+)
 _NEWEST_HINTS = re.compile(r"\b(new in|newest|latest|just dropped|new arrivals?)\b", re.I)
 
 _WOMEN_HINTS = re.compile(r"\b(women'?s?|womens|female|ladies|her)\b", re.I)
@@ -119,7 +170,9 @@ def _to_amount(digits: str, thousands: Optional[str]) -> Decimal:
     return value
 
 
-def _extract_prices(text: str) -> Tuple[Optional[Decimal], Optional[Decimal], List[Tuple[int, int]]]:
+def _extract_prices(
+    text: str,
+) -> Tuple[Optional[Decimal], Optional[Decimal], List[Tuple[int, int]]]:
     """Return (minimum, maximum, consumed spans)."""
     spans: List[Tuple[int, int]] = []
 

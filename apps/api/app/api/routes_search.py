@@ -13,8 +13,8 @@ from app.logging_config import get_logger, search_id_var
 from app.models.api import SearchCreatedResponse, SearchRequest
 from app.models.events import EventType, SearchEvent
 from app.services.nlp.sanitise import QueryValidationError, normalise_query
-from app.services.ratelimit import rate_limit_headers
 from app.services.ranking import DEFAULT_WEIGHTS
+from app.services.ratelimit import rate_limit_headers
 
 log = get_logger(__name__)
 router = APIRouter(prefix="/api", tags=["search"])
@@ -53,7 +53,9 @@ async def create_search(
             min_length=context.settings.search_min_query_length,
         )
     except QueryValidationError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     handle = await context.engine.start_search(query)
     log.info("search.created", query_length=len(query))
@@ -173,35 +175,45 @@ async def _replay_snapshot(search_id: str, snapshot: dict) -> AsyncIterator[str]
     updated = snapshot.get("results_updated_at")
 
     frames = [
-        (EventType.INTENT_PARSED, {
-            "intent": snapshot.get("intent", {}),
-            "parser": "snapshot",
-            "duration_ms": 0,
-            "retailers": retailers,
-        }),
-        (EventType.PRODUCTS_ADDED, {
-            "groups": groups,
-            "total_products": total,
-            "source": "cache",
-            "results_updated_at": updated,
-        }),
-        (EventType.RANKING_COMPLETED, {
-            "groups": groups,
-            "total_products": total,
-            "group_count": len(groups),
-        }),
-        (EventType.SEARCH_COMPLETED, {
-            "status": snapshot.get("status", "completed"),
-            "cache_state": snapshot.get("cache_state", "fresh"),
-            "total_products": total,
-            "group_count": len(groups),
-            "retailers": retailers,
-            "warnings": snapshot.get("warnings", []),
-            "results_updated_at": updated,
-            "duration_ms": 0,
-        }),
+        (
+            EventType.INTENT_PARSED,
+            {
+                "intent": snapshot.get("intent", {}),
+                "parser": "snapshot",
+                "duration_ms": 0,
+                "retailers": retailers,
+            },
+        ),
+        (
+            EventType.PRODUCTS_ADDED,
+            {
+                "groups": groups,
+                "total_products": total,
+                "source": "cache",
+                "results_updated_at": updated,
+            },
+        ),
+        (
+            EventType.RANKING_COMPLETED,
+            {
+                "groups": groups,
+                "total_products": total,
+                "group_count": len(groups),
+            },
+        ),
+        (
+            EventType.SEARCH_COMPLETED,
+            {
+                "status": snapshot.get("status", "completed"),
+                "cache_state": snapshot.get("cache_state", "fresh"),
+                "total_products": total,
+                "group_count": len(groups),
+                "retailers": retailers,
+                "warnings": snapshot.get("warnings", []),
+                "results_updated_at": updated,
+                "duration_ms": 0,
+            },
+        ),
     ]
     for index, (event_type, data) in enumerate(frames, start=1):
-        yield SearchEvent(
-            sequence=index, type=event_type, search_id=search_id, data=data
-        ).to_sse()
+        yield SearchEvent(sequence=index, type=event_type, search_id=search_id, data=data).to_sse()

@@ -9,7 +9,14 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 DEFAULT_GENDER = "men"
 DEFAULT_CURRENCY = "AUD"
@@ -158,9 +165,17 @@ class SearchIntent(BaseModel):
             return value
         text = str(value).strip().lower()
         aliases = {
-            "man": "men", "mens": "men", "men's": "men", "male": "men",
-            "woman": "women", "womens": "women", "women's": "women", "female": "women",
-            "any": "unisex", "all": "unisex", "neutral": "unisex",
+            "man": "men",
+            "mens": "men",
+            "men's": "men",
+            "male": "men",
+            "woman": "women",
+            "womens": "women",
+            "women's": "women",
+            "female": "women",
+            "any": "unisex",
+            "all": "unisex",
+            "neutral": "unisex",
         }
         return aliases.get(text, text)
 
@@ -214,6 +229,7 @@ class SearchIntent(BaseModel):
         The raw sentence is deliberately excluded so that two differently
         worded queries with identical meaning share a cache entry.
         """
+
         def money(value: Optional[Decimal]) -> Optional[str]:
             return None if value is None else format(Decimal(value).quantize(Decimal("0.01")), "f")
 

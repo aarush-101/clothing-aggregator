@@ -24,13 +24,38 @@ _WS = re.compile(r"\s+")
 _LEGAL_SUFFIX = re.compile(r"\b(ltd|limited|inc|llc|co|company|pty|gmbh|sa|bv)\b")
 # Tokens that describe a variant rather than the garment itself.
 _NOISE_TOKENS = {
-    "mens", "men", "man", "male", "unisex", "the", "a", "an", "and", "in", "with",
-    "new", "season", "ss", "aw", "fw", "collection", "edition", "size", "fit",
-    "colour", "color", "style", "online", "exclusive", "sale",
+    "mens",
+    "men",
+    "man",
+    "male",
+    "unisex",
+    "the",
+    "a",
+    "an",
+    "and",
+    "in",
+    "with",
+    "new",
+    "season",
+    "ss",
+    "aw",
+    "fw",
+    "collection",
+    "edition",
+    "size",
+    "fit",
+    "colour",
+    "color",
+    "style",
+    "online",
+    "exclusive",
+    "sale",
 }
 _NOISE_TOKENS |= set(SIZE_ALIASES.keys()) | set(SIZE_ALIASES.values())
 
-_MODEL_ID = re.compile(r"\b(?=[A-Za-z0-9-]*\d)[A-Za-z]{2,}[-_]?[A-Za-z0-9]{2,}(?:[-_][A-Za-z0-9]{2,})+\b")
+_MODEL_ID = re.compile(
+    r"\b(?=[A-Za-z0-9-]*\d)[A-Za-z]{2,}[-_]?[A-Za-z0-9]{2,}(?:[-_][A-Za-z0-9]{2,})+\b"
+)
 _IMAGE_FILE = re.compile(r"/([^/?#]+)(?:\?|#|$)")
 
 

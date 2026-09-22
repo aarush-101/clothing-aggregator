@@ -114,7 +114,7 @@ class Product(BaseModel):
         if value is None:
             return []
         if isinstance(value, str):
-            value = [part for part in re.split(r"[,/|]", value)]
+            value = re.split(r"[,/|]", value)
         if not isinstance(value, (list, tuple, set)):
             return []
         out: List[str] = []
@@ -161,7 +161,7 @@ class Product(BaseModel):
             return None
         if self.original_price <= self.price:
             return None
-        return int(round((1 - (self.price / self.original_price)) * 100))
+        return round((1 - (self.price / self.original_price)) * 100)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -201,7 +201,13 @@ class ProductGroup(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def lowest_total_price(self) -> float:
-        return min(offer.total_price for offer in self.offers)
+        """Cheapest price a shopper can actually buy at, including shipping.
+
+        Out-of-stock offers are ignored unless nothing in the group is
+        available - quoting a price you cannot buy is worse than no price.
+        """
+        purchasable = [offer.total_price for offer in self.offers if offer.in_stock]
+        return min(purchasable) if purchasable else min(o.total_price for o in self.offers)
 
 
 class RetailerStatus(BaseModel):

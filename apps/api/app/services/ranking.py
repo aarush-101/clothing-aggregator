@@ -244,9 +244,7 @@ def score_product(
         if detail:
             extra_reasons.append(_sentence_case(detail))
 
-    dimensions.append(
-        Dimension("stock", weights.stock, 1.0 if product.in_stock else 0.15)
-    )
+    dimensions.append(Dimension("stock", weights.stock, 1.0 if product.in_stock else 0.15))
     if not product.in_stock:
         extra_reasons.append("Currently out of stock")
 
@@ -302,9 +300,7 @@ def passes_hard_filters(product: Product, intent: SearchIntent) -> bool:
         return True  # cannot compare currencies - do not silently exclude
     if intent.maximum_price is not None and price > intent.maximum_price * (1 + PRICE_TOLERANCE):
         return False
-    if intent.minimum_price is not None and price < intent.minimum_price * Decimal("0.75"):
-        return False
-    return True
+    return not (intent.minimum_price is not None and price < intent.minimum_price * Decimal("0.75"))
 
 
 def filter_products(products: List[Product], intent: SearchIntent) -> List[Product]:
@@ -324,9 +320,7 @@ def _group_sort_key(group: ProductGroup, intent: SearchIntent):
         best_discount = max((offer.discount_percent or 0) for offer in group.offers)
         return (-best_discount, -group.match_score)
     if intent.sort_preference == SortPreference.NEWEST:
-        newest = max(
-            (offer.source_updated_at or offer.retrieved_at) for offer in group.offers
-        )
+        newest = max((offer.source_updated_at or offer.retrieved_at) for offer in group.offers)
         return (-newest.timestamp(), -group.match_score)
     return (-group.match_score, group.lowest_total_price, primary.uid)
 
@@ -355,7 +349,7 @@ def rank_groups(
             label = cheapest.retailer_name or cheapest.retailer
             note = f"Cheapest of {group.offer_count} retailers ({label})."
             if note not in group.match_reasons:
-                group.match_reasons = (group.match_reasons + [note])[:4]
+                group.match_reasons = [*group.match_reasons, note][:4]
 
     ranked = sorted(groups, key=lambda g: _group_sort_key(g, intent))
     return ranked[:limit] if limit else ranked

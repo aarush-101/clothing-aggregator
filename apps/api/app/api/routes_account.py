@@ -13,7 +13,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db.repository import AccountRepository
-from app.deps import get_accounts, get_context, require_user, AppContext
+from app.deps import AppContext, get_accounts, get_context, require_user
 from app.models.api import AnonymousSessionResponse, FavouriteRequest, SaveSearchRequest
 from app.services.nlp.sanitise import QueryValidationError, normalise_query
 
@@ -69,7 +69,9 @@ async def create_saved_search(
             min_length=context.settings.search_min_query_length,
         )
     except QueryValidationError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     outcome = await context.parser.parse(query)
     saved = await accounts.save_search(
@@ -106,9 +108,7 @@ async def list_favourites(
     return await accounts.list_favourites(user.id)
 
 
-@router.post(
-    "/account/favourites", status_code=status.HTTP_201_CREATED, summary="Add a favourite"
-)
+@router.post("/account/favourites", status_code=status.HTTP_201_CREATED, summary="Add a favourite")
 async def add_favourite(
     payload: FavouriteRequest,
     user=Depends(require_user),

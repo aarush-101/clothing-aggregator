@@ -83,9 +83,7 @@ class ConnectorRegistry:
         connectors = self.all()
         if not connectors:
             return []
-        results = await asyncio.gather(
-            *(self._safe_health(connector) for connector in connectors)
-        )
+        results = await asyncio.gather(*(self._safe_health(connector) for connector in connectors))
         return list(results)
 
     @staticmethod

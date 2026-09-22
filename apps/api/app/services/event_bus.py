@@ -37,7 +37,7 @@ class SearchEventStream:
         self.created_at = time.monotonic()
         self.finished_at: Optional[float] = None
         self._sequence = 0
-        self._subscribers: Set["asyncio.Queue[Optional[SearchEvent]]"] = set()
+        self._subscribers: Set[asyncio.Queue[Optional[SearchEvent]]] = set()
 
     def publish(self, event_type: EventType, data: dict) -> SearchEvent:
         self._sequence += 1
@@ -65,7 +65,7 @@ class SearchEventStream:
             self._offer(queue, None)
 
     @staticmethod
-    def _offer(queue: "asyncio.Queue[Optional[SearchEvent]]", item: Optional[SearchEvent]) -> None:
+    def _offer(queue: asyncio.Queue[Optional[SearchEvent]], item: Optional[SearchEvent]) -> None:
         try:
             queue.put_nowait(item)
         except asyncio.QueueFull:  # pragma: no cover - a stalled client
@@ -74,16 +74,14 @@ class SearchEventStream:
     @asynccontextmanager
     async def subscribe(
         self, from_sequence: int = 0
-    ) -> AsyncIterator[Tuple[List[SearchEvent], "asyncio.Queue[Optional[SearchEvent]]"]]:
+    ) -> AsyncIterator[Tuple[List[SearchEvent], asyncio.Queue[Optional[SearchEvent]]]]:
         """Yield (backlog, queue).
 
         The queue is registered *before* the backlog snapshot is taken, so no
         event can slip through the gap; duplicates are filtered by the caller
         using the monotonic sequence number.
         """
-        queue: "asyncio.Queue[Optional[SearchEvent]]" = asyncio.Queue(
-            maxsize=SUBSCRIBER_QUEUE_SIZE
-        )
+        queue: asyncio.Queue[Optional[SearchEvent]] = asyncio.Queue(maxsize=SUBSCRIBER_QUEUE_SIZE)
         self._subscribers.add(queue)
         try:
             backlog = [event for event in self.events if event.sequence > from_sequence]

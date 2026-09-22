@@ -34,27 +34,52 @@ _WHITESPACE = re.compile(r"\s+")
 # can hide instructions from a human reviewer.
 _STRUCTURAL = re.compile(r"[<>{}\[\]`\\|​-‏‪-‮⁠-⁤﻿]")
 
-_INJECTION_PATTERNS: List[Tuple[str, "re.Pattern[str]"]] = [
-    ("override_instructions", re.compile(
-        r"\b(ignore|disregard|forget|override|bypass)\b[^.]{0,40}\b"
-        r"(previous|prior|above|earlier|all|your|the)\b[^.]{0,20}"
-        r"\b(instruction|instructions|prompt|prompts|rule|rules|context)\b", re.I)),
-    ("role_reassignment", re.compile(
-        r"\b(you are now|act as|pretend to be|from now on you|new persona|"
-        r"roleplay as|behave as)\b", re.I)),
-    ("prompt_exfiltration", re.compile(
-        r"\b(system prompt|your (instructions|prompt|rules|guidelines)|"
-        r"reveal|repeat back|print|output|show me)\b[^.]{0,30}"
-        r"\b(prompt|instructions|system|configuration|api key|secret|token)\b", re.I)),
-    ("fake_turn", re.compile(
-        r"(^|\s)(system|assistant|human|user)\s*:\s", re.I)),
-    ("tag_injection", re.compile(
-        r"</?\s*(system|assistant|human|user|search_query|instructions?)\s*>", re.I)),
-    ("tool_manipulation", re.compile(
-        r"\b(tool_use|function_call|call the tool|invoke the function|"
-        r"stop_reason|end_turn)\b", re.I)),
-    ("exfiltration_target", re.compile(
-        r"\b(send|post|fetch|curl|http requests?)\b[^.]{0,30}\b(to|at)\b\s*https?://", re.I)),
+_INJECTION_PATTERNS: List[Tuple[str, re.Pattern[str]]] = [
+    (
+        "override_instructions",
+        re.compile(
+            r"\b(ignore|disregard|forget|override|bypass)\b[^.]{0,40}\b"
+            r"(previous|prior|above|earlier|all|your|the)\b[^.]{0,20}"
+            r"\b(instruction|instructions|prompt|prompts|rule|rules|context)\b",
+            re.I,
+        ),
+    ),
+    (
+        "role_reassignment",
+        re.compile(
+            r"\b(you are now|act as|pretend to be|from now on you|new persona|"
+            r"roleplay as|behave as)\b",
+            re.I,
+        ),
+    ),
+    (
+        "prompt_exfiltration",
+        re.compile(
+            r"\b(system prompt|your (instructions|prompt|rules|guidelines)|"
+            r"reveal|repeat back|print|output|show me)\b[^.]{0,30}"
+            r"\b(prompt|instructions|system|configuration|api key|secret|token)\b",
+            re.I,
+        ),
+    ),
+    ("fake_turn", re.compile(r"(^|\s)(system|assistant|human|user)\s*:\s", re.I)),
+    (
+        "tag_injection",
+        re.compile(r"</?\s*(system|assistant|human|user|search_query|instructions?)\s*>", re.I),
+    ),
+    (
+        "tool_manipulation",
+        re.compile(
+            r"\b(tool_use|function_call|call the tool|invoke the function|"
+            r"stop_reason|end_turn)\b",
+            re.I,
+        ),
+    ),
+    (
+        "exfiltration_target",
+        re.compile(
+            r"\b(send|post|fetch|curl|http requests?)\b[^.]{0,30}\b(to|at)\b\s*https?://", re.I
+        ),
+    ),
 ]
 
 
@@ -77,9 +102,7 @@ def normalise_query(raw: str, max_length: int, min_length: int = 2) -> str:
             f"Search query must be {max_length} characters or fewer (received {len(text)})."
         )
     if len(text.split(" ")) > MAX_REASONABLE_WORDS:
-        raise QueryValidationError(
-            f"Search query must be {MAX_REASONABLE_WORDS} words or fewer."
-        )
+        raise QueryValidationError(f"Search query must be {MAX_REASONABLE_WORDS} words or fewer.")
     return text
 
 
