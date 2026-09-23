@@ -9,12 +9,12 @@ export const metadata: Metadata = {
     template: '%s — Marle',
   },
   description:
-    'Describe what you are looking for and Marle searches menswear retailers for it, on demand.',
+    'Describe what you are looking for and Marle searches a regularly refreshed menswear catalogue across retailers.',
   robots: { index: true, follow: true },
   openGraph: {
     title: 'Marle — Menswear search',
     description:
-      'Describe what you are looking for and Marle searches menswear retailers for it, on demand.',
+      'Describe what you are looking for and Marle searches a regularly refreshed menswear catalogue across retailers.',
     type: 'website',
   },
 };

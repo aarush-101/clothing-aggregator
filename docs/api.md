@@ -60,7 +60,8 @@ Server-Sent Events. `Content-Type: text/event-stream`.
 
 Each frame carries an `id:` (a monotonic sequence number), an `event:` name and
 a JSON `data:` payload. Send `Last-Event-ID` on reconnect to replay only what
-you missed. Comment frames (`: keep-alive`) arrive every 15 seconds while idle.
+you missed while the job is running. Completed streams replay the current index
+with sequence numbers greater than the supplied ID. Comment frames (`: keep-alive`) arrive every 15 seconds while idle.
 
 Every payload includes `sequence`, `type`, `search_id` and `timestamp`.
 
@@ -73,7 +74,7 @@ data: {"sequence":4,"type":"products_added","search_id":"0f3c…", …}
 #### `search_started`
 
 ```json
-{ "query": "…", "cache_state": "miss", "retailers": [RetailerStatus, …] }
+{ "query": "…", "cache_state": "index", "retailers": [RetailerStatus, …] }
 ```
 
 #### `intent_parsed`
@@ -87,13 +88,13 @@ data: {"sequence":4,"type":"products_added","search_id":"0f3c…", …}
 }
 ```
 
-`retailers` is repeated here because connectors that cannot serve the parsed
-intent are now marked `skipped`.
+`retailers` describes the enabled index sources. Entries without a successful
+import become `skipped` and a coverage warning is returned.
 
 #### `retailer_started` / `retailer_completed` / `retailer_failed`
 
 ```json
-{ "retailer": RetailerStatus, "error": "timed out after 8s" }
+{ "retailer": RetailerStatus, "error": "First collection is pending" }
 ```
 
 `error` is present only on `retailer_failed`.
@@ -104,14 +105,14 @@ intent are now marked `skipped`.
 {
   "groups": [ProductGroup, …],
   "total_products": 12,
-  "source": "live" | "cache",
+  "source": "index",
   "results_updated_at": "2026-09-22T05:12:04+00:00"
 }
 ```
 
-`groups` contains only the groups that changed. **Merge by `group_id`** — a
-retailer answering late adds an offer to an existing group rather than creating
-a new card.
+`groups` contains indexed offers. Merge by `group_id`, then replace the list
+with the authoritative `ranking_completed` payload. This search makes no
+retailer HTTP requests.
 
 #### `ranking_completed`
 
@@ -126,18 +127,18 @@ The authoritative, fully ordered result set. Replace your list with it.
 ```json
 {
   "status": "completed" | "partial" | "failed",
-  "cache_state": "miss" | "fresh" | "stale" | "refreshed" | "coalesced",
+  "cache_state": "index",
   "total_products": 12,
   "group_count": 5,
   "retailers": [RetailerStatus, …],
-  "warnings": ["Atlas Trading Co. could not be searched (HTTP 503)."],
+  "warnings": ["Incu: its latest refresh failed; showing unexpired inventory."],
   "results_updated_at": "2026-09-22T05:12:04+00:00",
   "duration_ms": 1840
 }
 ```
 
-`partial` means at least one retailer failed; the results from the rest are
-still complete and usable. The stream closes after this event.
+`partial` means an enabled source has no collected inventory. Refresh problems
+and stale offers are also reported in warnings. The stream closes after this event.
 
 **Errors** `404` if the search id is unknown and no snapshot survives.
 
@@ -156,7 +157,7 @@ polling clients, or anything that cannot hold an SSE connection.
   "groups": [ProductGroup, …],
   "retailers": [RetailerStatus, …],
   "status": "completed",
-  "cache_state": "miss",
+  "cache_state": "index",
   "total_products": 12,
   "started_at": "…",
   "completed_at": "…",
@@ -185,24 +186,16 @@ deterministic, so this fully explains ordering.
 
 ### `GET /api/retailers?include_health=false`
 
-```json
-[
-  {
-    "key": "northbound",
-    "name": "Northbound Supply",
-    "type": "mock" | "feed" | "api" | "html",
-    "ships_to": ["AU", "NZ"],
-    "currency": "AUD",
-    "requires_permission": false,
-    "healthy": true,
-    "message": "seeded catalogue",
-    "latency_ms": 350
-  }
-]
-```
+Returns every reviewed retailer, including unconfigured entries. Fields include
+`key`, `name`, `type: "index"`, official URLs, `website_verification`,
+`data_access`, `enabled`, `state`, `offer_count`, `last_success` and `message`.
+`offer_count` is the last stored snapshot's variant count, including unavailable
+variants; it is not a count of matching garments. `ships_to: []` means unknown
+shipping coverage. `currency` is null for unconfigured sources.
 
-`include_health=true` probes each connector (5s timeout each); health fields are
-`null` otherwise.
+`include_health=true` includes whether the latest run succeeded. This reads
+stored health; it does not contact retailer sites. Runtime states are `pending`,
+`running`, `ok`, `failed`, `blocked` or `not_configured`.
 
 ---
 
@@ -215,9 +208,9 @@ straight to the retailer; this is a side-channel and must never block.
 
 ```json
 {
-  "retailer": "northbound",
-  "product_id": "northbound-ksl-lns-01",
-  "destination_url": "https://northbound-supply.example/products/…",
+  "retailer": "assemblylabel",
+  "product_id": "52368943776108",
+  "destination_url": "https://assemblylabel.com/products/…",
   "search_id": "0f3c…",
   "price": 119.0,
   "currency": "AUD",
@@ -234,8 +227,7 @@ logged.
 
 ## Accounts (optional)
 
-Search never requires authentication. These endpoints need `DATABASE_URL`; they
-return `501` otherwise.
+Search never requires authentication. These endpoints use the configured SQL database, including local SQLite.
 
 | Endpoint | Purpose |
 | --- | --- |
@@ -257,7 +249,7 @@ token is stored. Saving the same search twice is idempotent.
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /health` | Liveness. Always `200` while the process is up. |
-| `GET /health/ready` | Readiness. `503` when the cache is unavailable or no connectors are registered. PostgreSQL being down does **not** make the service unready — search does not depend on it. |
+| `GET /health/ready` | Readiness. `503` when the cache/database is unavailable or no ingestion sources are configured. Reports inventory count separately; an empty index can be ready but has no shopping results. |
 
 ```json
 {
@@ -268,6 +260,8 @@ token is stored. Saving the same search twice is idempotent.
     "cache": "ok",
     "database": "ok" | "unavailable" | "not configured",
     "connectors": 5,
+    "indexed_variant_offers": 37435,
+    "inventory": "available",
     "active_searches": 0,
     "query_parser": "anthropic" | "deterministic"
   }
@@ -354,3 +348,18 @@ at the edge if you deploy without a proxy), else the socket address.
 Only the origins in `CORS_ALLOW_ORIGINS` may call the API. Credentials are not
 allowed; authentication uses a bearer token, not cookies. Wildcards are rejected
 in production.
+
+## Product observation fields
+
+`product_id` identifies a variant; `listing_id` its parent product. Each offer
+has `variant_size`, price, currency, colour, direct variant URL and nullable
+`in_stock`. `retrieved_at` is when Marle observed it; `source_updated_at` is the
+retailer's timestamp if supplied. `stale_at`, `expires_at` and `freshness`
+express the observation lifetime. Unknown shipping cost/destination are null.
+General queries list only sizes available at the displayed price; a requested
+size filters before selecting the displayed variant.
+
+`total_price`/`lowest_total_price` include only known shipping charges. They are
+not confirmed checkout totals when shipping is null. Expired offers are removed
+from search. Snapshot reads and completed-stream replays re-query current
+inventory instead of trusting previously cached product data.

@@ -33,7 +33,9 @@ function stateLabel(retailer: RetailerStatus): string {
     case 'failed':
       return retailer.error ?? 'Unavailable';
     case 'running':
-      return 'Searching…';
+      return 'Searching catalogue…';
+    case 'skipped':
+      return retailer.error ?? 'Not collected yet';
     default:
       return 'Queued';
   }
@@ -48,7 +50,9 @@ export function RetailerProgress({
 }) {
   if (retailers.length === 0) return null;
 
-  const done = retailers.filter((r) => r.state === 'completed' || r.state === 'failed').length;
+  const done = retailers.filter(
+    (r) => r.state === 'completed' || r.state === 'failed' || r.state === 'skipped',
+  ).length;
 
   return (
     <section
@@ -57,7 +61,7 @@ export function RetailerProgress({
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="label-eyebrow">
-          {isLoading ? 'Searching retailers' : 'Retailers searched'}
+          {isLoading ? 'Searching catalogue' : 'Retailer coverage'}
         </h2>
         <span className="text-xs text-muted-foreground tabular-nums">
           {done}/{retailers.length}

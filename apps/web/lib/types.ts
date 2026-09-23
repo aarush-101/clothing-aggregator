@@ -46,7 +46,10 @@ export interface Product {
   price: number;
   original_price: number | null;
   currency: string;
-  in_stock: boolean;
+  in_stock: boolean | null;
+  freshness?: 'fresh' | 'stale';
+  expires_at?: string | null;
+  stale_at?: string | null;
   shipping_destination: string | null;
   shipping_cost: number | null;
   source_updated_at: string | null;
@@ -81,7 +84,7 @@ export interface RetailerStatus {
 }
 
 export type SearchStatus = 'running' | 'completed' | 'partial' | 'failed';
-export type CacheState = 'miss' | 'fresh' | 'stale' | 'refreshed' | 'coalesced';
+export type CacheState = 'index';
 
 export interface SearchCreated {
   search_id: string;
@@ -144,7 +147,7 @@ export interface RetailerEvent extends EventEnvelope {
 export interface ProductsAddedEvent extends EventEnvelope {
   groups: ProductGroup[];
   total_products: number;
-  source: 'live' | 'cache';
+  source: 'index';
   results_updated_at: string | null;
 }
 

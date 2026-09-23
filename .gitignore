@@ -43,3 +43,6 @@ data/local/
 .idea/
 .vscode/
 *.swp
+
+# Incremental TypeScript cache
+*.tsbuildinfo

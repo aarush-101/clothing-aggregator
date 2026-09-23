@@ -67,7 +67,7 @@ _APPROX_PATTERNS = [
 ]
 
 _SIZE_PATTERNS = [
-    re.compile(r"\bsize\s+(x?x?s|small|medium|med|large|x?x?l|\d{1,3})\b", re.I),
+    re.compile(r"\bsize\s+(x?x?x?s|m|small|medium|med|large|x?x?x?l|\d{1,3})\b", re.I),
     re.compile(r"\b(?:in|a)\s+(xs|x-small|small|medium|large|xl|xxl|x-large)\b", re.I),
     re.compile(r"\b(\d{2})\s*(?:inch|in|\")?\s*waist\b", re.I),
     re.compile(r"\bw(\d{2})\b", re.I),

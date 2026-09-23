@@ -1,41 +1,15 @@
-"""Search orchestration.
-
-One search is one background task that:
-
-1. parses the query into a :class:`SearchIntent` (LLM, or deterministic)
-2. decides which connectors are relevant
-3. serves cached results immediately when we have them
-4. queries the relevant connectors concurrently, with per-retailer timeouts,
-   bounded concurrency and bounded retries
-5. filters, de-duplicates and ranks after every retailer responds
-6. streams each step to the browser as a Server-Sent Event
-7. caches the completed result
-
-This is the current search-driven prototype. The accepted target architecture
-adds persistent product storage and scheduled ingestion; see docs/product-index.md.
-Neither capability is implemented in this module yet.
-"""
+"""Parse prompts, query the persistent index, rank and stream results."""
 
 from __future__ import annotations
 
 import asyncio
 import hashlib
-import random
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.config import Settings
-from app.connectors.base import (
-    ConnectorError,
-    ConnectorPermissionError,
-    ConnectorSkipped,
-    RetailerConnector,
-)
-from app.connectors.registry import ConnectorRegistry
-from app.connectors.shopify import cold_fetch_budget, new_cold_fetch_budget
 from app.logging_config import get_logger, search_id_var
 from app.models.events import (
     EventType,
@@ -43,27 +17,20 @@ from app.models.events import (
     products_added_data,
     ranking_completed_data,
     retailer_completed_data,
-    retailer_failed_data,
     retailer_started_data,
     search_completed_data,
     search_started_data,
 )
 from app.models.intent import SearchIntent
-from app.models.product import Product, ProductGroup, RetailerStatus, SearchResult
-from app.services.cache import FRESH, MISS, STALE, SearchCache
+from app.models.product import RetailerStatus, SearchResult, utcnow
+from app.services.cache import SearchCache
+from app.services.catalogue import Catalogue
 from app.services.dedupe import group_products
 from app.services.event_bus import EventBroker, SearchEventStream
 from app.services.nlp.parser import IntentParser
-from app.services.ranking import DEFAULT_WEIGHTS, filter_products, rank_groups
+from app.services.ranking import rank_groups
 
 log = get_logger(__name__)
-
-REFRESHED = "refreshed"
-COALESCED = "coalesced"
-
-
-def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 @dataclass
@@ -73,12 +40,7 @@ class SearchHandle:
 
 
 class SearchAnalyticsSink:
-    """Hook for persistence. The default implementation does nothing."""
-
     async def record_search(self, payload: Dict[str, Any]) -> None:
-        return None
-
-    async def record_connector_result(self, payload: Dict[str, Any]) -> None:
         return None
 
 
@@ -86,242 +48,209 @@ class SearchEngine:
     def __init__(
         self,
         settings: Settings,
-        registry: ConnectorRegistry,
+        catalogue: Catalogue,
         parser: IntentParser,
         cache: SearchCache,
         broker: EventBroker,
         analytics: Optional[SearchAnalyticsSink] = None,
-    ) -> None:
+    ):
         self._settings = settings
-        self._registry = registry
+        self._catalogue = catalogue
         self._parser = parser
         self._cache = cache
         self._broker = broker
         self._analytics = analytics or SearchAnalyticsSink()
         self._tasks: set = set()
 
-    # ------------------------------------------------------------------ API
     async def start_search(self, query: str) -> SearchHandle:
-        """Create a search job and return immediately with its id."""
         search_id = uuid.uuid4().hex
         stream = self._broker.create(search_id)
         task = asyncio.create_task(self._execute(search_id, query, stream))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
-        return SearchHandle(search_id=search_id, query=query)
-
-    async def get_snapshot(self, search_id: str) -> Optional[Dict[str, Any]]:
-        return await self._cache.get_search_snapshot(search_id)
+        return SearchHandle(search_id, query)
 
     async def shutdown(self) -> None:
         for task in list(self._tasks):
             task.cancel()
-        if self._tasks:
-            await asyncio.gather(*self._tasks, return_exceptions=True)
+        await asyncio.gather(*self._tasks, return_exceptions=True)
 
-    # ------------------------------------------------------------- lifecycle
+    async def _read_index(self, intent: SearchIntent):
+        products = await self._catalogue.search(intent)
+        groups = rank_groups(
+            group_products(products), intent, limit=self._settings.search_max_results
+        )
+        states = await self._catalogue.source_states()
+        statuses = []
+        warnings = []
+        for key, retailer in self._catalogue.retailers.items():
+            state = states.get(key)
+            status = RetailerStatus(
+                key=key,
+                name=retailer.name,
+                state="completed",
+                product_count=sum(p.retailer == key for p in products),
+            )
+            if state is None or state.last_success is None:
+                status.state = "skipped"
+                status.error = (
+                    "First collection is pending" if not state or not state.error else state.error
+                )
+                warnings.append(f"{retailer.name}: no inventory has been collected yet.")
+            elif state.error:
+                warnings.append(
+                    f"{retailer.name}: its latest refresh failed; showing unexpired inventory."
+                )
+            statuses.append(status)
+        if any(p.freshness == "stale" for p in products):
+            warnings.append(
+                "Some prices need refreshing. Confirm price and availability at the retailer."
+            )
+        if not products and not await self._catalogue.active_offer_count():
+            warnings.append(
+                "The catalogue is being collected or its inventory has expired. "
+                "Please try again after the next refresh."
+            )
+        updated_at = min((p.retrieved_at for p in products), default=None)
+        return groups, statuses, warnings, updated_at
+
+    async def get_snapshot(self, search_id: str) -> Optional[Dict[str, Any]]:
+        snapshot = await self._cache.get_search_snapshot(search_id)
+        if snapshot is None:
+            stream = self._broker.get(search_id)
+            snapshot = dict(stream.snapshot) if stream and stream.snapshot else None
+        if snapshot is None or not snapshot.get("intent"):
+            return snapshot
+        # Re-query to honour deletions, changed prices and expiry on reconnect.
+        intent = SearchIntent.model_validate(snapshot["intent"])
+        groups, statuses, warnings, updated_at = await self._read_index(intent)
+        snapshot.update(
+            groups=[g.model_dump(mode="json") for g in groups],
+            retailers=[r.model_dump() for r in statuses],
+            total_products=sum(g.offer_count for g in groups),
+            results_updated_at=updated_at.isoformat() if updated_at else None,
+            warnings=list(snapshot.get("parse_warnings", [])) + warnings,
+            status="partial" if any(r.state == "skipped" for r in statuses) else "completed",
+        )
+        return snapshot
+
     async def _execute(self, search_id: str, query: str, stream: SearchEventStream) -> None:
         search_id_var.set(search_id)
-        started = time.perf_counter()
-        warnings: List[str] = []
-
-        statuses: Dict[str, RetailerStatus] = {
-            connector.key: RetailerStatus(key=connector.key, name=connector.display_name)
-            for connector in self._registry.all()
-        }
-
+        began = time.perf_counter()
+        statuses = [
+            RetailerStatus(key=r.key, name=r.name) for r in self._catalogue.retailers.values()
+        ]
         try:
-            stream.publish(
-                EventType.SEARCH_STARTED,
-                search_started_data(query, MISS, list(statuses.values())),
-            )
-
-            intent, parser_name, parse_ms, parse_warnings = await self._resolve_intent(query)
-            warnings.extend(parse_warnings)
-
-            selected = self._registry.for_intent(intent)
-            selected_keys = {connector.key for connector in selected}
-            for key, status in statuses.items():
-                if key not in selected_keys:
-                    status.state = "skipped"
-
+            stream.publish(EventType.SEARCH_STARTED, search_started_data(query, "index", statuses))
+            intent, parser, parse_ms, parse_warnings = await self._resolve_intent(query)
             stream.publish(
                 EventType.INTENT_PARSED,
-                intent_parsed_data(
-                    intent.model_dump(mode="json"),
-                    parser_name,
-                    parse_ms,
-                    list(statuses.values()),
+                intent_parsed_data(intent.model_dump(mode="json"), parser, parse_ms, statuses),
+            )
+            for status in statuses:
+                status.state = "running"
+                stream.publish(EventType.RETAILER_STARTED, retailer_started_data(status))
+            groups, statuses, warnings, updated_at = await self._read_index(intent)
+            for status in statuses:
+                stream.publish(EventType.RETAILER_COMPLETED, retailer_completed_data(status))
+            warnings = parse_warnings + warnings
+            total = sum(g.offer_count for g in groups)
+            status = "partial" if any(r.state == "skipped" for r in statuses) else "completed"
+            result = SearchResult(
+                search_id=search_id,
+                query=query,
+                intent=intent.model_dump(mode="json"),
+                groups=groups,
+                retailers=statuses,
+                status=status,
+                cache_state="index",
+                total_products=total,
+                completed_at=utcnow(),
+                results_updated_at=updated_at,
+                warnings=warnings,
+            )
+            payload = result.model_dump(mode="json")
+            payload.update(parser=parser, parse_warnings=parse_warnings)
+            stream.snapshot = payload
+            await self._cache.set_search_snapshot(search_id, payload)
+            stream.publish(
+                EventType.PRODUCTS_ADDED,
+                products_added_data(groups, total, source="index", results_updated_at=updated_at),
+            )
+            stream.publish(EventType.RANKING_COMPLETED, ranking_completed_data(groups, total))
+            stream.publish(
+                EventType.SEARCH_COMPLETED,
+                search_completed_data(
+                    status=status,
+                    cache_state="index",
+                    total_products=total,
+                    group_count=len(groups),
+                    retailers=statuses,
+                    warnings=warnings,
+                    results_updated_at=updated_at,
+                    duration_ms=int((time.perf_counter() - began) * 1000),
                 ),
             )
-
-            fingerprint = intent.fingerprint()
-            cache_state = MISS
-            cached_groups: List[ProductGroup] = []
-
-            cached = await self._cache.get_results(fingerprint)
-            if cached is not None:
-                cached_groups = self._groups_from_payload(cached.payload)
-                cached_statuses = self._statuses_from_payload(cached.payload) or list(
-                    statuses.values()
-                )
-                stream.publish(
-                    EventType.PRODUCTS_ADDED,
-                    products_added_data(
-                        cached_groups,
-                        sum(g.offer_count for g in cached_groups),
-                        source="cache",
-                        results_updated_at=cached.stored_at,
-                    ),
-                )
-                if cached.state == FRESH:
-                    await self._complete(
-                        search_id=search_id,
-                        stream=stream,
-                        query=query,
-                        intent=intent,
-                        groups=cached_groups,
-                        statuses=cached_statuses,
-                        cache_state=FRESH,
-                        warnings=warnings,
-                        started=started,
-                        results_updated_at=cached.stored_at,
-                        persist=False,
-                        fingerprint=fingerprint,
-                    )
-                    return
-                cache_state = STALE
-                warnings.append("Showing recent results while we refresh them.")
-
-            if not selected:
-                warnings.append("No retailers matched this search.")
-                await self._complete(
-                    search_id=search_id,
-                    stream=stream,
-                    query=query,
-                    intent=intent,
-                    groups=cached_groups,
-                    statuses=list(statuses.values()),
-                    cache_state=cache_state,
-                    warnings=warnings,
-                    started=started,
-                    results_updated_at=utcnow(),
-                    persist=False,
-                    fingerprint=fingerprint,
-                )
-                return
-
-            lock_token = await self._cache.acquire_lock(fingerprint)
-            if lock_token is None:
-                coalesced = await self._await_inflight(fingerprint)
-                if coalesced is not None:
-                    groups = self._groups_from_payload(coalesced.payload)
-                    stream.publish(
-                        EventType.PRODUCTS_ADDED,
-                        products_added_data(
-                            groups,
-                            sum(g.offer_count for g in groups),
-                            source="cache",
-                            results_updated_at=coalesced.stored_at,
-                        ),
-                    )
-                    await self._complete(
-                        search_id=search_id,
-                        stream=stream,
-                        query=query,
-                        intent=intent,
-                        groups=groups,
-                        statuses=self._statuses_from_payload(coalesced.payload)
-                        or list(statuses.values()),
-                        cache_state=COALESCED,
-                        warnings=warnings,
-                        started=started,
-                        results_updated_at=coalesced.stored_at,
-                        persist=False,
-                        fingerprint=fingerprint,
-                    )
-                    return
-                log.info("search.lock_wait_timeout", fingerprint=fingerprint)
-
+            stream.close()
             try:
-                products = await self._fan_out(intent, selected, statuses, stream)
-            finally:
-                if lock_token:
-                    await self._cache.release_lock(fingerprint, lock_token)
-
-            groups = rank_groups(
-                group_products(products),
-                intent,
-                DEFAULT_WEIGHTS,
-                limit=self._settings.search_max_results,
-            )
-            if not groups and cached_groups:
-                # A refresh that returns nothing should not blank the page.
-                groups = cached_groups
-                warnings.append("Refresh returned no results; showing the previous set.")
-
-            failed = [s for s in statuses.values() if s.state == "failed"]
-            for status in failed:
-                warnings.append(f"{status.name} could not be searched ({status.error}).")
-
-            await self._complete(
-                search_id=search_id,
-                stream=stream,
-                query=query,
-                intent=intent,
-                groups=groups,
-                statuses=list(statuses.values()),
-                cache_state=REFRESHED if cache_state == STALE else MISS,
-                warnings=warnings,
-                started=started,
-                results_updated_at=utcnow(),
-                persist=True,
-                fingerprint=fingerprint,
-                partial=bool(failed),
-            )
-        except asyncio.CancelledError:  # pragma: no cover - shutdown path
+                await self._analytics.record_search(
+                    {
+                        "search_id": search_id,
+                        "query": query,
+                        "intent_fingerprint": intent.fingerprint(),
+                        "intent": intent.model_dump(mode="json"),
+                        "status": status,
+                        "cache_state": "index",
+                        "result_count": total,
+                        "group_count": len(groups),
+                        "duration_ms": int((time.perf_counter() - began) * 1000),
+                    }
+                )
+            except Exception:
+                log.exception("search.analytics_failed")
+        except asyncio.CancelledError:
             stream.close()
             raise
-        except Exception as exc:
-            log.exception("search.failed", error=str(exc))
+        except Exception:
+            log.exception("search.failed")
+            failure = SearchResult(
+                search_id=search_id,
+                query=query,
+                intent={},
+                status="failed",
+                completed_at=utcnow(),
+                warnings=["Search is temporarily unavailable. Please try again."],
+            ).model_dump(mode="json")
+            stream.snapshot = failure
+            await self._cache.set_search_snapshot(search_id, failure)
             stream.publish(
                 EventType.SEARCH_COMPLETED,
                 search_completed_data(
                     status="failed",
-                    cache_state=MISS,
+                    cache_state="index",
                     total_products=0,
                     group_count=0,
-                    retailers=list(statuses.values()),
-                    warnings=["The search could not be completed. Please try again."],
+                    retailers=statuses,
+                    warnings=["Search is temporarily unavailable. Please try again."],
                     results_updated_at=None,
-                    duration_ms=int((time.perf_counter() - started) * 1000),
+                    duration_ms=int((time.perf_counter() - began) * 1000),
                 ),
             )
             stream.close()
 
-    # ---------------------------------------------------------------- intent
     async def _resolve_intent(self, query: str) -> Tuple[SearchIntent, str, int, List[str]]:
-        """Parse the query, reusing a cached interpretation when we have one.
-
-        The parser that produced the intent and any warnings it raised are
-        cached alongside it: "this was interpreted without AI assistance" stays
-        true on the second search, and the UI keeps telling the truth.
-        """
-        query_hash = hashlib.sha256(query.strip().lower().encode("utf-8")).hexdigest()[:32]
+        query_hash = hashlib.sha256(query.strip().lower().encode()).hexdigest()[:32]
         cached = await self._cache.get_intent(query_hash)
         if cached:
             try:
-                envelope = cached if "intent" in cached else {"intent": cached}
-                intent = SearchIntent.model_validate(envelope["intent"])
                 return (
-                    intent,
-                    str(envelope.get("parser") or "cache"),
+                    SearchIntent.model_validate(cached["intent"]),
+                    cached["parser"],
                     0,
-                    list(envelope.get("warnings") or []),
+                    cached.get("warnings", []),
                 )
-            except Exception:
-                log.warning("intent.cache_invalid", query_hash=query_hash)
-
+            except (ValueError, KeyError):
+                pass
         outcome = await self._parser.parse(query)
         await self._cache.set_intent(
             query_hash,
@@ -331,287 +260,4 @@ class SearchEngine:
                 "warnings": outcome.warnings,
             },
         )
-        return (outcome.intent, outcome.parser, outcome.duration_ms, outcome.warnings)
-
-    # --------------------------------------------------------------- fan-out
-    async def _fan_out(
-        self,
-        intent: SearchIntent,
-        connectors: List[RetailerConnector],
-        statuses: Dict[str, RetailerStatus],
-        stream: SearchEventStream,
-    ) -> List[Product]:
-        semaphore = asyncio.Semaphore(self._settings.search_max_concurrent_retailers)
-        # Shared by every connector in this search; tasks inherit the context.
-        cold_fetch_budget.set(new_cold_fetch_budget(self._settings.shopify_cold_fetch_budget))
-        accumulated: List[Product] = []
-        published: Dict[str, Tuple[int, float]] = {}
-
-        async def run_one(connector: RetailerConnector) -> None:
-            status = statuses[connector.key]
-            status.state = "running"
-            stream.publish(EventType.RETAILER_STARTED, retailer_started_data(status))
-            began = time.perf_counter()
-
-            try:
-                async with semaphore:
-                    products, error = await self._search_with_retries(connector, intent, status)
-            except ConnectorSkipped as skipped:
-                status.state = "skipped"
-                status.error = skipped.reason
-                status.duration_ms = int((time.perf_counter() - began) * 1000)
-                stream.publish(EventType.RETAILER_COMPLETED, retailer_completed_data(status))
-                return
-
-            status.duration_ms = int((time.perf_counter() - began) * 1000)
-
-            if error is not None:
-                status.state = "failed"
-                status.error = error
-                stream.publish(EventType.RETAILER_FAILED, retailer_failed_data(status, error))
-                log.warning(
-                    "retailer.failed",
-                    retailer=connector.key,
-                    error=error,
-                    attempts=status.attempts,
-                )
-            else:
-                relevant = filter_products(products, intent)
-                status.state = "completed"
-                status.product_count = len(relevant)
-                stream.publish(EventType.RETAILER_COMPLETED, retailer_completed_data(status))
-                log.info(
-                    "retailer.completed",
-                    retailer=connector.key,
-                    returned=len(products),
-                    kept=len(relevant),
-                    duration_ms=status.duration_ms,
-                )
-                if relevant:
-                    accumulated.extend(relevant)
-                    # No awaits below: the regroup/rank/publish block runs to
-                    # completion before another retailer's callback can start.
-                    ranked = rank_groups(
-                        group_products(accumulated),
-                        intent,
-                        DEFAULT_WEIGHTS,
-                        limit=self._settings.search_max_results,
-                    )
-                    changed = [
-                        group
-                        for group in ranked
-                        if published.get(group.group_id) != (group.offer_count, group.match_score)
-                    ]
-                    for group in ranked:
-                        published[group.group_id] = (group.offer_count, group.match_score)
-                    if changed:
-                        stream.publish(
-                            EventType.PRODUCTS_ADDED,
-                            products_added_data(
-                                changed,
-                                sum(g.offer_count for g in ranked),
-                                source="live",
-                                results_updated_at=utcnow(),
-                            ),
-                        )
-
-            await self._record_connector_result(connector, status)
-
-        tasks = [asyncio.create_task(run_one(connector)) for connector in connectors]
-        _, pending = await asyncio.wait(tasks, timeout=self._settings.search_total_timeout_seconds)
-        if pending:
-            for task in pending:
-                task.cancel()
-            await asyncio.gather(*pending, return_exceptions=True)
-            for status in statuses.values():
-                if status.state in {"pending", "running"}:
-                    status.state = "failed"
-                    status.error = "search timed out"
-                    stream.publish(
-                        EventType.RETAILER_FAILED,
-                        retailer_failed_data(status, status.error),
-                    )
-
-        return accumulated
-
-    async def _search_with_retries(
-        self, connector: RetailerConnector, intent: SearchIntent, status: RetailerStatus
-    ) -> Tuple[List[Product], Optional[str]]:
-        """Returns (products, error). A ConnectorSkipped propagates upward."""
-        attempts = max(1, self._settings.search_retailer_max_attempts)
-        last_error = "unknown error"
-
-        for attempt in range(1, attempts + 1):
-            status.attempts = attempt
-            try:
-                products = await asyncio.wait_for(
-                    connector.search(intent),
-                    timeout=self._settings.search_retailer_timeout_seconds,
-                )
-                return (list(products), None)
-            except asyncio.CancelledError:
-                raise
-            except asyncio.TimeoutError:
-                last_error = (
-                    f"timed out after {self._settings.search_retailer_timeout_seconds:.0f}s"
-                )
-            except ConnectorSkipped:
-                raise  # not a failure; handled by the caller
-            except ConnectorPermissionError as exc:
-                return ([], str(exc))  # configuration problem - retrying cannot help
-            except ConnectorError as exc:
-                last_error = str(exc)
-            except Exception as exc:
-                log.exception("retailer.unexpected_error", retailer=connector.key)
-                last_error = f"unexpected error: {type(exc).__name__}"
-
-            if attempt < attempts:
-                backoff = self._settings.search_retailer_backoff_seconds * (2 ** (attempt - 1))
-                await asyncio.sleep(backoff + random.uniform(0, 0.15))
-
-        return ([], last_error)
-
-    # ----------------------------------------------------------- completion
-    async def _complete(
-        self,
-        *,
-        search_id: str,
-        stream: SearchEventStream,
-        query: str,
-        intent: SearchIntent,
-        groups: List[ProductGroup],
-        statuses: List[RetailerStatus],
-        cache_state: str,
-        warnings: List[str],
-        started: float,
-        results_updated_at: Optional[datetime],
-        persist: bool,
-        fingerprint: str,
-        partial: bool = False,
-    ) -> None:
-        total_products = sum(group.offer_count for group in groups)
-        duration_ms = int((time.perf_counter() - started) * 1000)
-        status = "partial" if partial else "completed"
-
-        payload = {
-            "query": query,
-            "intent": intent.model_dump(mode="json"),
-            "groups": [group.model_dump(mode="json") for group in groups],
-            "retailers": [item.model_dump() for item in statuses],
-        }
-        if persist:
-            await self._cache.set_results(fingerprint, payload)
-
-        snapshot = SearchResult(
-            search_id=search_id,
-            intent=intent.model_dump(mode="json"),
-            query=query,
-            groups=groups,
-            retailers=statuses,
-            status=status,
-            cache_state=cache_state,
-            total_products=total_products,
-            completed_at=utcnow(),
-            results_updated_at=results_updated_at,
-            warnings=warnings,
-        )
-        await self._cache.set_search_snapshot(search_id, snapshot.model_dump(mode="json"))
-
-        # Emitted from here so cached, coalesced and live searches all produce
-        # the same event sequence and the client needs only one code path.
-        stream.publish(
-            EventType.RANKING_COMPLETED,
-            ranking_completed_data(groups, total_products),
-        )
-        stream.publish(
-            EventType.SEARCH_COMPLETED,
-            search_completed_data(
-                status=status,
-                cache_state=cache_state,
-                total_products=total_products,
-                group_count=len(groups),
-                retailers=statuses,
-                warnings=warnings,
-                results_updated_at=results_updated_at,
-                duration_ms=duration_ms,
-            ),
-        )
-        stream.close()
-
-        log.info(
-            "search.completed",
-            status=status,
-            cache_state=cache_state,
-            groups=len(groups),
-            products=total_products,
-            duration_ms=duration_ms,
-        )
-        await self._record_search(
-            {
-                "search_id": search_id,
-                "query": query,
-                "intent_fingerprint": fingerprint,
-                "intent": intent.model_dump(mode="json"),
-                "status": status,
-                "cache_state": cache_state,
-                "result_count": total_products,
-                "group_count": len(groups),
-                "duration_ms": duration_ms,
-            }
-        )
-
-    # -------------------------------------------------------------- helpers
-    async def _await_inflight(self, fingerprint: str):
-        """Wait briefly for the search holding the lock to publish its result."""
-        deadline = time.monotonic() + min(self._settings.cache_lock_timeout_seconds, 20)
-        while time.monotonic() < deadline:
-            await asyncio.sleep(0.25)
-            cached = await self._cache.get_results(fingerprint)
-            if cached is not None and cached.state == FRESH:
-                return cached
-        return None
-
-    @staticmethod
-    def _groups_from_payload(payload: Dict[str, Any]) -> List[ProductGroup]:
-        groups: List[ProductGroup] = []
-        for raw in payload.get("groups", []) or []:
-            try:
-                groups.append(ProductGroup.model_validate(raw))
-            except Exception:
-                continue
-        return groups
-
-    @staticmethod
-    def _statuses_from_payload(payload: Dict[str, Any]) -> List[RetailerStatus]:
-        statuses: List[RetailerStatus] = []
-        for raw in payload.get("retailers", []) or []:
-            try:
-                statuses.append(RetailerStatus.model_validate(raw))
-            except Exception:
-                continue
-        return statuses
-
-    async def _record_search(self, payload: Dict[str, Any]) -> None:
-        try:
-            await self._analytics.record_search(payload)
-        except Exception as exc:
-            log.warning("analytics.record_search_failed", error=str(exc))
-
-    async def _record_connector_result(
-        self, connector: RetailerConnector, status: RetailerStatus
-    ) -> None:
-        try:
-            await self._analytics.record_connector_result(
-                {
-                    "connector_key": connector.key,
-                    "connector_name": connector.display_name,
-                    "healthy": status.state == "completed",
-                    "state": status.state,
-                    "duration_ms": status.duration_ms,
-                    "product_count": status.product_count,
-                    "error": status.error,
-                    "attempts": status.attempts,
-                }
-            )
-        except Exception as exc:
-            log.warning("analytics.record_connector_failed", error=str(exc))
+        return outcome.intent, outcome.parser, outcome.duration_ms, outcome.warnings

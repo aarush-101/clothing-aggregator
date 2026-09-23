@@ -27,11 +27,9 @@ from app.services.ratelimit import rate_limit_headers
 log = get_logger(__name__)
 
 DESCRIPTION = """
-On-demand menswear search across multiple retailers.
-
-Retailer data is fetched **only** when a user searches - there is no scheduled
-crawler and no preloaded product catalogue. Results are cached briefly in Redis
-and served progressively over Server-Sent Events.
+Menswear search over a persistent product index. Retailer collections are refreshed
+in the background. Prompts are parsed, matched and ranked locally, with results
+streamed over Server-Sent Events and purchase links to the original retailers.
 """
 
 # Paths that must not consume the general request budget.
@@ -43,13 +41,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_format)
     context = AppContext.create(settings)
+    await context.startup()
     app.state.context = context
     log.info(
         "app.started",
         environment=settings.app_env,
-        connectors=len(context.registry.all()),
+        sources=len(context.catalogue.retailers),
         cache="redis" if settings.redis_url else "memory",
-        database="postgres" if settings.database_url else "disabled",
+        database="postgres" if context.database.url.startswith("postgres") else "sqlite",
         query_parser="anthropic" if settings.anthropic_enabled else "deterministic",
     )
     try:

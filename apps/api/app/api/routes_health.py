@@ -18,7 +18,7 @@ async def health(context: AppContext = Depends(get_context)) -> HealthResponse:
         status="ok",
         version=VERSION,
         environment=context.settings.app_env,
-        checks={"connectors": len(context.registry.all())},
+        checks={"connectors": len(context.catalogue.retailers)},
     )
 
 
@@ -28,11 +28,10 @@ async def readiness(
 ) -> HealthResponse:
     cache_ok = await context.cache.healthy()
     database_ok = await context.database.healthy() if context.database else None
-    connectors = context.registry.all()
+    connectors = context.catalogue.retailers
+    inventory = await context.catalogue.active_offer_count() if database_ok else 0
 
-    # The service is usable without Postgres (search is the product), so only a
-    # missing cache or a missing connector set makes it "degraded".
-    ready = cache_ok and bool(connectors)
+    ready = cache_ok and database_ok and bool(connectors)
     if not ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
@@ -48,6 +47,8 @@ async def readiness(
                 else ("ok" if database_ok else "unavailable")
             ),
             "connectors": len(connectors),
+            "indexed_variant_offers": inventory,
+            "inventory": "available" if inventory else "empty",
             "active_searches": context.broker.active_count,
             "query_parser": "anthropic" if context.settings.anthropic_enabled else "deterministic",
         },

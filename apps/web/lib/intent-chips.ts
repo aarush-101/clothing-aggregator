@@ -72,7 +72,7 @@ export function buildIntentChips(intent: SearchIntent | null): IntentChip[] {
   if (destination) {
     chips.push({
       key: 'shipping',
-      label: `Ships to ${destination}`,
+      label: `Destination: ${destination}`,
       kind: 'shipping',
     });
   }

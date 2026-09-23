@@ -1,4 +1,4 @@
-"""The normalised product shape every connector must return."""
+"""Normalised retailer variant offers and search responses."""
 
 from __future__ import annotations
 
@@ -74,6 +74,8 @@ class Product(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     product_id: str
+    listing_id: Optional[str] = None
+    variant_size: Optional[str] = None
     title: str
     description: Optional[str] = None
     brand: Optional[str] = None
@@ -89,11 +91,14 @@ class Product(BaseModel):
     price: Decimal = Field(ge=0)
     original_price: Optional[Decimal] = Field(default=None, ge=0)
     currency: str = "AUD"
-    in_stock: bool = True
+    in_stock: Optional[bool] = None
     shipping_destination: Optional[str] = None
     shipping_cost: Optional[Decimal] = Field(default=None, ge=0)
     source_updated_at: Optional[datetime] = None
     retrieved_at: datetime = Field(default_factory=utcnow)
+    stale_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    freshness: str = "fresh"
     match_score: float = 0.0
     match_reasons: List[str] = Field(default_factory=list)
 
@@ -142,7 +147,7 @@ class Product(BaseModel):
     def _clamp_score(cls, value: float) -> float:
         return max(0.0, min(1.0, float(value)))
 
-    @field_validator("source_updated_at", "retrieved_at", mode="before")
+    @field_validator("source_updated_at", "retrieved_at", "stale_at", "expires_at", mode="before")
     @classmethod
     def _aware_datetime(cls, value: Any) -> Any:
         if isinstance(value, datetime) and value.tzinfo is None:
@@ -166,7 +171,7 @@ class Product(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def total_price(self) -> float:
-        """Price including shipping, for honest cross-retailer comparison."""
+        """Listed price plus known shipping; unknown shipping is not a free-delivery claim."""
         return round(float(self.price + (self.shipping_cost or Decimal("0"))), 2)
 
     @property
@@ -211,7 +216,7 @@ class ProductGroup(BaseModel):
 
 
 class RetailerStatus(BaseModel):
-    """Per-connector progress, surfaced in the UI while a search runs."""
+    """Per-retailer index coverage, surfaced in the UI while a search runs."""
 
     key: str
     name: str
@@ -236,7 +241,7 @@ class SearchResult(BaseModel):
     groups: List[ProductGroup] = Field(default_factory=list)
     retailers: List[RetailerStatus] = Field(default_factory=list)
     status: str = "running"  # running | completed | partial | failed
-    cache_state: str = "miss"  # miss | fresh | stale | refreshed
+    cache_state: str = "index"
     total_products: int = 0
     started_at: datetime = Field(default_factory=utcnow)
     completed_at: Optional[datetime] = None

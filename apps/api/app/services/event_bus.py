@@ -33,6 +33,7 @@ class SearchEventStream:
     def __init__(self, search_id: str) -> None:
         self.search_id = search_id
         self.events: List[SearchEvent] = []
+        self.snapshot: Optional[dict] = None
         self.closed = False
         self.created_at = time.monotonic()
         self.finished_at: Optional[float] = None

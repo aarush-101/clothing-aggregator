@@ -43,11 +43,11 @@ describe('buildIntentChips', () => {
   });
 
   it('always shows the shipping destination', () => {
-    expect(labels(makeIntent())).toContain('Ships to Sydney');
+    expect(labels(makeIntent())).toContain('Destination: Sydney');
   });
 
   it('falls back to the country when no city was given', () => {
-    expect(labels(makeIntent({ destination_city: null }))).toContain('Ships to AU');
+    expect(labels(makeIntent({ destination_city: null }))).toContain('Destination: AU');
   });
 
   it('hides the default gender and shows a non-default one', () => {

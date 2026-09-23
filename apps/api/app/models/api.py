@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -94,15 +94,3 @@ class HealthResponse(BaseModel):
     version: str
     environment: str
     checks: Dict[str, Any]
-
-
-class RetailerSummary(BaseModel):
-    key: str
-    name: str
-    type: str
-    ships_to: List[str]
-    currency: str
-    requires_permission: bool
-    healthy: Optional[bool] = None
-    message: Optional[str] = None
-    latency_ms: Optional[int] = None

@@ -90,7 +90,7 @@ describe('ProductCard', () => {
       retailers: ['Northbound Supply', 'Harbour & Hale', 'Meridian Menswear'],
     });
     render(<ProductCard group={group} position={1} searchId="s1" />);
-    expect(screen.getByText(/Cheapest of 3 retailers/)).toBeInTheDocument();
+    expect(screen.getByText(/Lowest listed price · 3 retailers/)).toBeInTheDocument();
   });
 
   it('shows free shipping when there is no shipping cost', () => {

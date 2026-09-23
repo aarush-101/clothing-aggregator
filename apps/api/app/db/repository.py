@@ -1,9 +1,4 @@
-"""Data access for accounts, favourites, clicks and analytics.
-
-These application-state repositories degrade gracefully when the database is
-not configured. The current demo search can run without Postgres; the planned
-product-index repository will require it (see docs/product-index.md).
-"""
+"""Data access for accounts, favourites, clicks and analytics."""
 
 from __future__ import annotations
 
@@ -17,7 +12,6 @@ from sqlalchemy import delete, select
 from app.db.session import Database
 from app.db.tables import (
     AffiliateClickEvent,
-    ConnectorHealthRecord,
     Favourite,
     SavedSearch,
     SearchAnalytics,
@@ -217,23 +211,6 @@ class DatabaseAnalyticsSink(SearchAnalyticsSink):
                     result_count=payload.get("result_count", 0),
                     group_count=payload.get("group_count", 0),
                     duration_ms=payload.get("duration_ms", 0),
-                )
-            )
-
-    async def record_connector_result(self, payload: Dict[str, Any]) -> None:
-        if self._db is None:
-            return
-        async with self._db.session() as session:
-            session.add(
-                ConnectorHealthRecord(
-                    connector_key=payload["connector_key"],
-                    connector_name=payload.get("connector_name"),
-                    healthy=bool(payload.get("healthy")),
-                    state=payload.get("state"),
-                    latency_ms=payload.get("duration_ms"),
-                    product_count=payload.get("product_count"),
-                    attempts=payload.get("attempts"),
-                    error=(payload.get("error") or None),
                 )
             )
 

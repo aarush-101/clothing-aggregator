@@ -1,50 +1,47 @@
-"""Connector inventory and health."""
+"""Retailer coverage and the health of its persistent inventory."""
 
 from __future__ import annotations
 
-from typing import List
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
 from app.deps import AppContext, get_context
-from app.models.api import RetailerSummary
+from app.sources.registry import load_retailers
 
 router = APIRouter(prefix="/api", tags=["retailers"])
 
 
-def _connector_type(connector) -> str:
-    name = type(connector).__name__
-    if "Mock" in name:
-        return "mock"
-    if "Feed" in name:
-        return "feed"
-    if "Html" in name:
-        return "html"
-    return "api"
-
-
-@router.get("/retailers", response_model=List[RetailerSummary], summary="List active connectors")
+@router.get("/retailers", summary="List reviewed retailers and inventory coverage")
 async def list_retailers(
     include_health: bool = False, context: AppContext = Depends(get_context)
-) -> List[RetailerSummary]:
-    health_by_key = {}
-    if include_health:
-        health_by_key = {item.key: item for item in await context.registry.health()}
-
-    summaries: List[RetailerSummary] = []
-    for connector in context.registry.all():
-        health = health_by_key.get(connector.key)
-        summaries.append(
-            RetailerSummary(
-                key=connector.key,
-                name=connector.display_name,
-                type=_connector_type(connector),
-                ships_to=list(connector.ships_to),
-                currency=connector.currency,
-                requires_permission=connector.requires_permission,
-                healthy=health.healthy if health else None,
-                message=health.message if health else None,
-                latency_ms=health.latency_ms if health else None,
-            )
+) -> list:
+    states = await context.catalogue.source_states()
+    output = []
+    for retailer in load_retailers():
+        state = states.get(retailer.key)
+        enabled = retailer.key in context.catalogue.retailers
+        output.append(
+            {
+                "key": retailer.key,
+                "name": retailer.name,
+                "type": "index",
+                "website_url": retailer.website_url,
+                "menswear_url": retailer.menswear_url,
+                "ships_to": [],
+                "currency": retailer.ingestion.currency if retailer.ingestion else None,
+                "enabled": enabled,
+                "requires_permission": False,
+                "website_verification": retailer.website_verification,
+                "data_access": retailer.data_access,
+                "state": state.state if state else "not_configured",
+                "offer_count": state.offer_count if state else 0,
+                "last_success": datetime.fromtimestamp(state.last_success, timezone.utc).isoformat()
+                if state and state.last_success
+                else None,
+                "healthy": bool(state and state.state == "ok") if include_health else None,
+                "message": state.error if state else "Product ingestion is not configured",
+                "latency_ms": None,
+            }
         )
-    return summaries
+    return output

@@ -34,7 +34,6 @@ export interface SearchStreamState {
   cacheState: CacheState | null;
   warnings: string[];
   resultsUpdatedAt: string | null;
-  servedFromCache: boolean;
   reconnecting: boolean;
   durationMs: number | null;
   error: string | null;
@@ -53,7 +52,6 @@ const initialState: SearchStreamState = {
   cacheState: null,
   warnings: [],
   resultsUpdatedAt: null,
-  servedFromCache: false,
   reconnecting: false,
   durationMs: null,
   error: null,
@@ -125,7 +123,6 @@ function reducer(state: SearchStreamState, action: Action): SearchStreamState {
         groups: mergeGroups(state.groups, action.payload.groups),
         totalProducts: action.payload.total_products,
         resultsUpdatedAt: action.payload.results_updated_at ?? state.resultsUpdatedAt,
-        servedFromCache: state.servedFromCache || action.payload.source === 'cache',
       };
     case 'ranked':
       return {
@@ -137,7 +134,7 @@ function reducer(state: SearchStreamState, action: Action): SearchStreamState {
     case 'completed':
       return {
         ...state,
-        phase: 'settled',
+        phase: action.payload.status === 'failed' ? 'error' : 'settled',
         status: action.payload.status,
         cacheState: action.payload.cache_state,
         retailers: action.payload.retailers,
@@ -146,12 +143,15 @@ function reducer(state: SearchStreamState, action: Action): SearchStreamState {
         resultsUpdatedAt: action.payload.results_updated_at ?? state.resultsUpdatedAt,
         durationMs: action.payload.duration_ms,
         reconnecting: false,
-        error: null,
+        error:
+          action.payload.status === 'failed'
+            ? (action.payload.warnings[0] ?? 'Search is temporarily unavailable.')
+            : null,
       };
     case 'snapshot':
       return {
         ...state,
-        phase: 'settled',
+        phase: action.payload.status === 'failed' ? 'error' : 'settled',
         groups: action.payload.groups,
         retailers: action.payload.retailers,
         status: action.payload.status,
@@ -164,7 +164,10 @@ function reducer(state: SearchStreamState, action: Action): SearchStreamState {
             ? (action.payload.intent as SearchIntent)
             : state.intent,
         reconnecting: false,
-        error: null,
+        error:
+          action.payload.status === 'failed'
+            ? (action.payload.warnings[0] ?? 'Search is temporarily unavailable.')
+            : null,
       };
     case 'reconnecting':
       return { ...state, reconnecting: action.value };

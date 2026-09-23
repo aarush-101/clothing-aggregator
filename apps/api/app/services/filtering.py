@@ -1,10 +1,4 @@
-"""Coarse relevance filtering applied inside connectors.
-
-A retailer's own search API narrows results server-side. Feed-based connectors
-have to do it themselves, otherwise a 20,000-row feed would be shipped through
-ranking on every search. This is a *cheap* pre-filter - the real scoring lives
-in :mod:`app.services.ranking`.
-"""
+"""Relevance filtering over indexed retailer offers before ranking."""
 
 from __future__ import annotations
 

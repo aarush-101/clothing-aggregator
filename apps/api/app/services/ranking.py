@@ -68,8 +68,8 @@ class RankingWeights:
 
 DEFAULT_WEIGHTS = RankingWeights()
 
-# Price tolerance: an item this far above the stated maximum is still shown,
-# flagged as slightly over, because shoppers routinely mean "about $120".
+# Penalty scale for scoring over-budget offers supplied directly to ranking.
+# Indexed searches enforce the parsed price bounds before ranking.
 PRICE_TOLERANCE = Decimal("0.10")
 
 
@@ -244,8 +244,14 @@ def score_product(
         if detail:
             extra_reasons.append(_sentence_case(detail))
 
-    dimensions.append(Dimension("stock", weights.stock, 1.0 if product.in_stock else 0.15))
-    if not product.in_stock:
+    dimensions.append(
+        Dimension(
+            "stock",
+            weights.stock,
+            1.0 if product.in_stock is True else (0.5 if product.in_stock is None else 0.15),
+        )
+    )
+    if product.in_stock is False:
         extra_reasons.append("Currently out of stock")
 
     total_weight = sum(d.weight for d in dimensions) or 1.0
@@ -298,9 +304,9 @@ def passes_hard_filters(product: Product, intent: SearchIntent) -> bool:
     price = comparable_amount(product.price, product.currency, intent.currency)
     if price is None:
         return True  # cannot compare currencies - do not silently exclude
-    if intent.maximum_price is not None and price > intent.maximum_price * (1 + PRICE_TOLERANCE):
+    if intent.maximum_price is not None and price > intent.maximum_price:
         return False
-    return not (intent.minimum_price is not None and price < intent.minimum_price * Decimal("0.75"))
+    return not (intent.minimum_price is not None and price < intent.minimum_price)
 
 
 def filter_products(products: List[Product], intent: SearchIntent) -> List[Product]:
@@ -347,7 +353,10 @@ def rank_groups(
         if group.offer_count > 1:
             cheapest = group.offers[0]
             label = cheapest.retailer_name or cheapest.retailer
-            note = f"Cheapest of {group.offer_count} retailers ({label})."
+            note = (
+                f"Lowest listed price across {len(group.retailers)} retailers "
+                f"({label}); check shipping."
+            )
             if note not in group.match_reasons:
                 group.match_reasons = [*group.match_reasons, note][:4]
 

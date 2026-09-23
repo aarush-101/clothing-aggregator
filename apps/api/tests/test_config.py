@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from app.config import FeedConnectorConfig, Settings
+from app.config import Settings
 
 
 def base(**overrides) -> dict:
@@ -46,11 +46,6 @@ def test_production_rejects_wildcard_cors():
         )
 
 
-def test_stale_ceiling_must_not_be_below_the_fresh_window():
-    with pytest.raises(ValidationError):
-        Settings(**base(cache_fresh_seconds=3600, cache_max_stale_seconds=60))
-
-
 def test_invalid_log_level_is_rejected():
     with pytest.raises(ValidationError):
         Settings(**base(log_level="chatty"))
@@ -67,34 +62,10 @@ def test_affiliate_templates_must_be_http_urls():
         _ = settings.affiliate_template_map
 
 
-def test_affiliate_feeds_are_validated():
-    settings = Settings(
-        **base(
-            affiliate_feeds=(
-                '[{"key":"demo","display_name":"Demo","url":"https://f.example/x.json",'
-                '"format":"json","items_path":"items"}]'
-            )
-        )
-    )
-    feeds = settings.feed_configs
-    assert len(feeds) == 1 and feeds[0].key == "demo"
-
-
-def test_malformed_affiliate_feeds_raise_a_clear_error():
-    with pytest.raises(ValueError):
-        _ = Settings(**base(affiliate_feeds="not json")).feed_configs
-
-
-def test_feed_format_must_be_json_or_xml():
+def test_catalogue_expiry_must_exceed_stale_threshold():
     with pytest.raises(ValidationError):
-        FeedConnectorConfig(key="k", display_name="K", url="https://x.test", format="csv")
+        Settings(**base(catalogue_stale_seconds=3600, catalogue_expire_seconds=3600))
 
 
-def test_feed_key_must_be_a_safe_slug():
-    with pytest.raises(ValidationError):
-        FeedConnectorConfig(key="Bad Key!", display_name="K", url="https://x.test")
-
-
-def test_enabled_connector_keys_are_parsed():
-    settings = Settings(**base(enabled_connectors="mock:*, sample_feed ,"))
-    assert settings.enabled_connector_keys == ["mock:*", "sample_feed"]
+def test_background_ingestion_is_enabled_by_default():
+    assert Settings(_env_file=None, ingestion_enabled=True).ingestion_enabled

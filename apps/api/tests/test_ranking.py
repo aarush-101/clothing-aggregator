@@ -126,9 +126,8 @@ def test_items_far_over_budget_are_filtered_out():
     assert passes_hard_filters(product(price=Decimal("400")), intent()) is False
 
 
-def test_items_slightly_over_budget_are_kept():
-    # "under $120" in practice means "about $120".
-    assert passes_hard_filters(product(price=Decimal("125")), intent()) is True
+def test_explicit_budget_is_respected_even_when_only_slightly_over():
+    assert passes_hard_filters(product(price=Decimal("125")), intent()) is False
 
 
 def test_excluded_brands_are_filtered_out():
@@ -188,7 +187,9 @@ def test_multi_retailer_groups_explain_the_cheapest_offer():
     )
     ranked = rank_groups([multi], intent())
     assert ranked[0].primary.retailer == "two"
-    assert any("Cheapest of 2 retailers" in reason for reason in ranked[0].match_reasons)
+    assert any(
+        "Lowest listed price across 2 retailers" in reason for reason in ranked[0].match_reasons
+    )
 
 
 def test_ranking_is_deterministic():

@@ -37,7 +37,7 @@ describe('RetailerProgress', () => {
     );
     expect(screen.getByText('Northbound Supply')).toBeInTheDocument();
     expect(screen.getByText('Harbour & Hale')).toBeInTheDocument();
-    expect(screen.getByText('Searching…')).toBeInTheDocument();
+    expect(screen.getByText('Searching catalogue…')).toBeInTheDocument();
     expect(screen.getByText('Queued')).toBeInTheDocument();
   });
 

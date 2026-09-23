@@ -82,7 +82,7 @@ async def stream_search_events(
     from_sequence = _parse_last_event_id(last_event_id)
     stream = context.broker.get(search_id)
 
-    if stream is None:
+    if stream is None or stream.closed:
         # The in-process stream has expired (or this instance never had it).
         # Replay the persisted snapshot so a reconnecting client still ends up
         # in a correct final state.
@@ -92,7 +92,7 @@ async def stream_search_events(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Unknown or expired search"
             )
         return StreamingResponse(
-            _replay_snapshot(search_id, snapshot),
+            _replay_snapshot(search_id, snapshot, from_sequence),
             media_type="text/event-stream",
             headers=_sse_headers(),
         )
@@ -146,7 +146,7 @@ async def get_ranking_explanation() -> dict:
             "excluded and their weight is redistributed.",
             "Scoring is deterministic - no model call is involved in ranking.",
             "Offers for the same garment are grouped and the cheapest available "
-            "option (including shipping) is shown first.",
+            "option is shown first; shipping may be unknown.",
         ],
     }
 
@@ -167,7 +167,9 @@ def _parse_last_event_id(value: Optional[str]) -> int:
         return 0
 
 
-async def _replay_snapshot(search_id: str, snapshot: dict) -> AsyncIterator[str]:
+async def _replay_snapshot(
+    search_id: str, snapshot: dict, from_sequence: int = 0
+) -> AsyncIterator[str]:
     """Emit a minimal, correct event sequence from a stored snapshot."""
     groups = snapshot.get("groups", [])
     total = snapshot.get("total_products", 0)
@@ -176,20 +178,26 @@ async def _replay_snapshot(search_id: str, snapshot: dict) -> AsyncIterator[str]
 
     frames = [
         (
+            EventType.SEARCH_STARTED,
+            {"query": snapshot.get("query", ""), "cache_state": "index", "retailers": retailers},
+        ),
+        (
             EventType.INTENT_PARSED,
             {
                 "intent": snapshot.get("intent", {}),
-                "parser": "snapshot",
+                "parser": snapshot.get("parser", "deterministic"),
                 "duration_ms": 0,
                 "retailers": retailers,
             },
         ),
+        *[(EventType.RETAILER_STARTED, {"retailer": retailer}) for retailer in retailers],
+        *[(EventType.RETAILER_COMPLETED, {"retailer": retailer}) for retailer in retailers],
         (
             EventType.PRODUCTS_ADDED,
             {
                 "groups": groups,
                 "total_products": total,
-                "source": "cache",
+                "source": "index",
                 "results_updated_at": updated,
             },
         ),
@@ -215,5 +223,7 @@ async def _replay_snapshot(search_id: str, snapshot: dict) -> AsyncIterator[str]
             },
         ),
     ]
-    for index, (event_type, data) in enumerate(frames, start=1):
+    for index, (event_type, data) in enumerate(frames, start=from_sequence + 1):
+        if event_type == EventType.INTENT_PARSED and not snapshot.get("intent"):
+            continue
         yield SearchEvent(sequence=index, type=event_type, search_id=search_id, data=data).to_sse()

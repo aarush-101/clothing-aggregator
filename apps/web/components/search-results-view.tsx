@@ -114,7 +114,7 @@ export function SearchResultsView() {
         <div className="space-y-4 py-5">
           {stream.reconnecting ? <ReconnectingNotice /> : null}
 
-          {stream.isLoading || stream.failedRetailers.length > 0 ? (
+          {stream.activeRetailers.length > 0 ? (
             <RetailerProgress retailers={stream.activeRetailers} isLoading={stream.isLoading} />
           ) : null}
 
@@ -152,9 +152,9 @@ export function SearchResultsView() {
                     <span className="sr-only">Results last updated </span>
                     Updated {formatRelativeTime(stream.resultsUpdatedAt)}
                   </p>
-                  {stream.servedFromCache && settled ? (
+                  {stream.cacheState === 'index' && settled ? (
                     <Badge variant="outline" className="font-normal">
-                      {stream.cacheState === 'refreshed' ? 'Refreshed' : 'Cached'}
+                      From retailer catalogue
                     </Badge>
                   ) : null}
                 </div>

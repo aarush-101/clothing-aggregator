@@ -129,11 +129,11 @@ def identity_keys(product: Product) -> List[Tuple[str, str]]:
 
     model_id = extract_model_id(product)
     if model_id:
-        keys.append(("model", model_id))
+        keys.append(("model", f"{model_id}|{_primary_colour(product)}"))
 
     fingerprint = image_fingerprint(product.image_url)
     if fingerprint:
-        keys.append(("image", fingerprint))
+        keys.append(("image", f"{fingerprint}|{_primary_colour(product)}"))
 
     return keys
 

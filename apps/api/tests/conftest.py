@@ -22,24 +22,21 @@ os.environ.update(
         "REDIS_URL": "",
         "DATABASE_URL": f"sqlite+aiosqlite:///{TEST_DB_PATH}",
         "ANTHROPIC_API_KEY": "",
-        "MOCK_LATENCY_MULTIPLIER": "0",
-        "MOCK_INCLUDE_FLAKY_RETAILER": "false",
+        "INGESTION_ENABLED": "false",
         "RATE_LIMIT_ENABLED": "false",
         "LOG_LEVEL": "WARNING",
-        "ENABLED_CONNECTORS": "mock:*,sample_feed",
-        # The suite must never reach the public internet: real storefronts are
-        # exercised by a separate, explicitly opt-in live check.
-        "ENABLE_SHOPIFY_CONNECTORS": "false",
     }
 )
 
 from app.config import Settings, reset_settings_cache  # noqa: E402
-from app.connectors.registry import ConnectorRegistry  # noqa: E402
 from app.db.session import Database  # noqa: E402
 from app.services.cache import MemoryCacheBackend, SearchCache  # noqa: E402
+from app.services.catalogue import Catalogue  # noqa: E402
 from app.services.event_bus import EventBroker  # noqa: E402
 from app.services.nlp.parser import IntentParser  # noqa: E402
 from app.services.search_engine import SearchEngine  # noqa: E402
+from app.sources.registry import enabled_retailers  # noqa: E402
+from tests.catalogue_fixtures import seed_catalogue, source  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -49,6 +46,7 @@ def prepared_database():
     async def _create() -> None:
         database = Database(f"sqlite+aiosqlite:///{TEST_DB_PATH}")
         await database.create_all()
+        await seed_catalogue(Catalogue(database, enabled_retailers(), Settings()))
         await database.dispose()
 
     asyncio.run(_create())
@@ -68,8 +66,13 @@ def cache(settings: Settings) -> SearchCache:
 
 
 @pytest.fixture
-def registry(settings: Settings) -> ConnectorRegistry:
-    return ConnectorRegistry(settings)
+async def catalogue(settings, tmp_path):
+    database = Database(f"sqlite+aiosqlite:///{tmp_path / 'inventory.sqlite3'}")
+    await database.create_all()
+    catalogue = Catalogue(database, [source()], settings)
+    await catalogue.initialise()
+    yield catalogue
+    await database.dispose()
 
 
 @pytest.fixture
@@ -78,10 +81,10 @@ def broker() -> EventBroker:
 
 
 @pytest.fixture
-def engine(settings, registry, cache, broker) -> SearchEngine:
+def engine(settings, catalogue, cache, broker) -> SearchEngine:
     return SearchEngine(
         settings=settings,
-        registry=registry,
+        catalogue=catalogue,
         parser=IntentParser(settings),
         cache=cache,
         broker=broker,

@@ -7,8 +7,8 @@ const API_URL = `http://127.0.0.1:${API_PORT}`;
 
 /**
  * End-to-end tests run the real stack: the FastAPI service with its mock
- * retailer connectors, and the Next.js app against it. No Redis or Postgres is
- * required - the API falls back to its in-process cache and skips persistence.
+ * inventory fixtures, and the Next.js app against it. No Redis or Postgres is
+ * required. A dedicated SQLite file holds test inventory; ingestion is disabled.
  */
 export default defineConfig({
   testDir: './e2e',
@@ -30,7 +30,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port ${API_PORT}`,
+      command: `.venv/bin/python -m tests.e2e_server --port ${API_PORT}`,
       cwd: '../api',
       url: `${API_URL}/health`,
       reuseExistingServer: !process.env.CI,
@@ -38,18 +38,16 @@ export default defineConfig({
       env: {
         APP_ENV: 'test',
         REDIS_URL: '',
-        DATABASE_URL: '',
+        DATABASE_URL: 'sqlite+aiosqlite:///./e2e.sqlite3',
+        INGESTION_ENABLED: 'false',
         ANTHROPIC_API_KEY: '',
         RATE_LIMIT_ENABLED: 'false',
         LOG_LEVEL: 'WARNING',
-        MOCK_LATENCY_MULTIPLIER: '0.25',
-        // Exercises the partial-results path in the UI.
-        MOCK_INCLUDE_FLAKY_RETAILER: 'true',
         CORS_ALLOW_ORIGINS: BASE_URL,
       },
     },
     {
-      command: `npm run dev -- --port ${WEB_PORT}`,
+      command: `npm run build && npm run start -- --port ${WEB_PORT}`,
       url: BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -2,7 +2,7 @@
 
 The maintained list lives in
 [`apps/api/app/data/retailers.json`](../apps/api/app/data/retailers.json).
-It gives source research and future ingestion a shared list of retailers,
+It gives source research and running ingestion a shared list of retailers,
 official menswear URLs and dated evidence.
 
 The initial ten entries were reviewed on **2026-09-23**: THE ICONIC, UNIQLO
@@ -17,12 +17,15 @@ retailer website with a menswear section. The initial reviews used web browsing,
 which may return cached page content. They were not live access benchmarks
 from Marle's backend.
 
-`data_access.status` is tracked separately. All initial entries are
-`not_validated`: none has a working Marle product integration established by
-this review. Website verification does not verify individual products, current
-prices, stock, sizes, delivery destinations or suitability for automated
-collection. `storefront_market = AU` identifies the reviewed storefront's
-market; it does not assert that every item ships to Australia.
+`data_access.status` is tracked separately. Assembly Label, Academy Brand,
+Industrie, Universal Store and Incu have validated public collection imports,
+with evidence in [the live report](live-validation.md). The other five remain
+`not_validated` and have no enabled ingestion configuration.
+
+Website verification alone does not establish product access or current stock.
+`storefront_market = AU` describes the storefront, not shipping eligibility.
+Runtime health and last successful imports are stored in SQL and reported by
+`GET /api/retailers`; a historical successful check is not a health monitor.
 
 ## Entry fields
 
@@ -70,14 +73,12 @@ in this file.
 
 ## Relationship to the running app
 
-This is a checked-in source registry, not an enabled connector list. Adding an
-entry does not start crawling it or add products to search results. The
-prototype still returns demo data by default, and `GET /api/retailers` still
-describes configured runtime connectors.
+`app/sources/registry.py` validates and loads this file at startup. An optional
+`ingestion` object selects the method, men's collection, currency, refresh
+interval and page budget. Only `ingestion.enabled = true` entries run.
+Adding a website without this configuration does not start collection.
 
-The planned [product index](product-index.md) can use this registry to seed
-retailer identities, while source configuration and access checks determine
-which ingestion adapters can run. The existing
-[`shopify_stores.json`](../apps/api/app/data/shopify_stores.json) remains a
-separate historical research/configuration file for the optional Shopify
-connector. Its 93 candidates have not been promoted into this verified list.
+There is one registry: the old 93-store Shopify candidate configuration has
+been removed. `/api/retailers` lists all reviewed entries alongside their
+configured/collected status. See [adding a source](adding-a-source.md) for the
+configuration and validation workflow.

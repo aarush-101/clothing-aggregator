@@ -38,13 +38,14 @@ services:
     build:
       context: ./apps/api
     container_name: aggregator-api
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     environment:
       DATABASE_URL: postgresql+asyncpg://aggregator:aggregator@postgres:5432/aggregator
       REDIS_URL: redis://redis:6379/0
       CORS_ALLOW_ORIGINS: http://localhost:3000
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LOG_FORMAT: json
-      MOCK_INCLUDE_FLAKY_RETAILER: "true"
+      INGESTION_ENABLED: "true"
     ports:
       - "8000:8000"
     depends_on:

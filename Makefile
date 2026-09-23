@@ -28,6 +28,12 @@ migrate: ## Apply database migrations
 api: ## Run the API in development mode
 	cd apps/api && .venv/bin/uvicorn app.main:app --reload --port 8000
 
+ingest: ## Refresh due retailer collections once
+	cd apps/api && .venv/bin/python -m app.ingest --once
+
+worker: ## Run the dedicated ingestion scheduler
+	cd apps/api && .venv/bin/python -m app.ingest
+
 web: ## Run the frontend in development mode
 	cd apps/web && npm run dev
 
@@ -55,4 +61,4 @@ build: ## Production build of the frontend
 
 verify: lint test build ## Everything CI runs
 
-.PHONY: help up down install install-api install-web migrate api web test test-api test-web test-e2e lint format build verify
+.PHONY: help up down install install-api install-web migrate api ingest worker web test test-api test-web test-e2e lint format build verify

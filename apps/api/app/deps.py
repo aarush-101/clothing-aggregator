@@ -13,15 +13,17 @@ from typing import Optional
 from fastapi import Depends, HTTPException, Request, status
 
 from app.config import Settings, get_settings
-from app.connectors.registry import ConnectorRegistry
 from app.db.repository import AccountRepository, DatabaseAnalyticsSink
 from app.db.session import Database, build_database
 from app.logging_config import get_logger
 from app.services.cache import SearchCache, build_cache_backend
+from app.services.catalogue import Catalogue
 from app.services.event_bus import EventBroker
+from app.services.ingestion import IngestionWorker
 from app.services.nlp.parser import IntentParser
 from app.services.ratelimit import RateLimiter, optional_bearer_token
 from app.services.search_engine import SearchEngine
+from app.sources.registry import enabled_retailers
 
 log = get_logger(__name__)
 
@@ -30,25 +32,26 @@ log = get_logger(__name__)
 class AppContext:
     settings: Settings
     cache: SearchCache
-    registry: ConnectorRegistry
+    catalogue: Catalogue
+    worker: IngestionWorker
     parser: IntentParser
     broker: EventBroker
     engine: SearchEngine
     rate_limiter: RateLimiter
     accounts: AccountRepository
-    database: Optional[Database]
+    database: Database
 
     @classmethod
     def create(cls, settings: Optional[Settings] = None) -> AppContext:
         settings = settings or get_settings()
         cache = SearchCache(settings, build_cache_backend(settings))
-        registry = ConnectorRegistry(settings, cache)
         parser = IntentParser(settings)
         broker = EventBroker()
         database = build_database(settings)
+        catalogue = Catalogue(database, enabled_retailers(), settings)
         engine = SearchEngine(
             settings=settings,
-            registry=registry,
+            catalogue=catalogue,
             parser=parser,
             cache=cache,
             broker=broker,
@@ -57,18 +60,26 @@ class AppContext:
         return cls(
             settings=settings,
             cache=cache,
-            registry=registry,
+            catalogue=catalogue,
             parser=parser,
             broker=broker,
+            worker=IngestionWorker(catalogue),
             engine=engine,
             rate_limiter=RateLimiter(settings, cache),
             accounts=AccountRepository(database),
             database=database,
         )
 
+    async def startup(self) -> None:
+        if self.database.url.startswith("sqlite"):
+            await self.database.create_all()
+        await self.catalogue.initialise()
+        if self.settings.ingestion_enabled:
+            self.worker.start()
+
     async def shutdown(self) -> None:
+        await self.worker.stop()
         await self.engine.shutdown()
-        await self.registry.aclose()
         await self.parser.aclose()
         await self.cache.aclose()
         if self.database is not None:

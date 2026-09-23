@@ -1,75 +1,35 @@
-# Clothing Aggregator API
+# Marle API
 
-FastAPI prototype for menswear search: natural-language query parsing,
-concurrent retailer connectors, normalisation, de-duplication, deterministic
-ranking, Redis caching and Server-Sent Event streaming.
-
-The default sources contain fictional products. A persistent product index and
-scheduled ingestion are the accepted next architecture, but neither is
-implemented yet. See the [product-index plan](../../docs/product-index.md).
-
-Full documentation lives in the repository root:
-[`README.md`](../../README.md) and [`docs/`](../../docs).
-
-## Run it
-
-Run these **from this directory** (`apps/api`) — `pyproject.toml` lives here, not
-at the repository root.
+FastAPI service for prompt parsing, indexed menswear search, ranking, SSE,
+accounts, favourites and click tracking. A scheduled worker collects enabled
+retailers into a persistent SQL variant catalogue.
 
 ```bash
-cd apps/api
-
 python3 -m venv .venv
-
-# Required: the pip bundled with some Python builds (macOS system Python ships
-# 21.2.4) predates PEP 660, and `pip install -e .` fails on a pyproject-only
-# project with "File setup.py or setup.cfg not found".
 .venv/bin/pip install --upgrade pip
-
 .venv/bin/pip install -e ".[dev]"
-
+.venv/bin/python -m app.ingest --once
 .venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
-Or, from the repository root, `make install-api` does all of the above.
+No credentials are needed for the five initial product sources or the
+fallback query parser. Blank `DATABASE_URL` uses `marle.sqlite3` in this
+directory, automatically creating tables. PostgreSQL deployments must run
+`.venv/bin/alembic upgrade head` before starting the API or worker.
 
-Interactive docs at <http://localhost:8000/docs>.
+`INGESTION_ENABLED=true` starts the worker within the API process for local
+use. For a dedicated worker, disable it on the API and run
+`.venv/bin/python -m app.ingest`. Source schedules and leases live in SQL.
 
-In the current development/demo mode, Redis, PostgreSQL and an Anthropic API key
-are all optional — the service falls back to an in-process cache, skips
-persistence, and parses queries deterministically.
+| Directory | Purpose |
+| --- | --- |
+| `app/sources/` | Registry validation and public Shopify collection adapter |
+| `app/services/catalogue.py` | Variant storage, worker leases, publication and indexed queries |
+| `app/services/ingestion.py` | Scheduled imports and failure handling |
+| `app/services/search_engine.py` | Prompt parsing, ranking and search events |
+| `app/db/` | SQLAlchemy tables and application repositories |
+| `app/data/retailers.json` | Reviewed retailers and ingestion configuration |
+| `tests/` | Offline source, persistence, lifecycle and HTTP tests |
 
-The planned live indexed mode will require PostgreSQL and an ingestion worker.
-
-## Test and lint
-
-```bash
-.venv/bin/pytest                 # 256 tests, no external services required
-.venv/bin/ruff check .
-.venv/bin/ruff format --check .
-```
-
-## Migrations
-
-```bash
-DATABASE_URL="postgresql+asyncpg://…" .venv/bin/alembic upgrade head
-```
-
-## Layout
-
-```
-app/
-  config.py            settings, validated at import
-  logging_config.py    structured logging
-  models/              SearchIntent, Product, SSE events, API bodies
-  services/nlp/        sanitise → parser → anthropic | deterministic
-  services/            search_engine, ranking, dedupe, cache, event_bus
-  connectors/          base interface, registry, mock / feed / api / html
-  db/                  SQLAlchemy models, session, repositories
-  api/                 routers
-  data/                seeded mock catalogue and sample feeds
-alembic/               migrations
-tests/                 pytest suite
-```
-
-Supports Python 3.9+; the Docker image uses 3.12.
+Run `.venv/bin/pytest`, `.venv/bin/ruff check .` and
+`.venv/bin/ruff format --check .`. See [the root README](../../README.md).

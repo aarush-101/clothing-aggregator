@@ -45,7 +45,7 @@ test.describe('search results', () => {
     await expect(chips).toContainText('Linen');
     await expect(chips).toContainText('Relaxed');
     await expect(chips).toContainText('Under $120');
-    await expect(chips).toContainText('Ships to Sydney');
+    await expect(chips).toContainText('Destination: Sydney');
 
     // Retailers are listed while they are being searched.
     const progress = page.getByRole('region', { name: 'Retailer progress' });
@@ -75,7 +75,7 @@ test.describe('search results', () => {
 
   test('reports partial results when a retailer fails', async ({ page }) => {
     await search(page, 'olive cotton chore jacket');
-    // The demo stack includes a deliberately failing retailer.
+    // Uncollected sources are reported alongside indexed fixture inventory.
     await expect(page.getByTestId('partial-results-notice')).toBeVisible();
     // ... and results from the healthy retailers are still shown.
     expect(await page.getByTestId('product-card').count()).toBeGreaterThan(0);
@@ -186,14 +186,14 @@ test.describe('refinement', () => {
   });
 });
 
-test.describe('caching', () => {
-  test('a repeated search is served from cache and labelled', async ({ page }) => {
+test.describe('indexed search', () => {
+  test('a repeated search reads the catalogue and is labelled', async ({ page }) => {
     const query = 'charcoal wool overshirt';
     await search(page, query);
     await page.goto('/');
     await search(page, query);
 
-    await expect(page.getByText(/Cached|Refreshed/)).toBeVisible();
+    await expect(page.getByText('From retailer catalogue')).toBeVisible();
   });
 });
 

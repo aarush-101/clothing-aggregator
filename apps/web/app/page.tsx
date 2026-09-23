@@ -5,7 +5,7 @@ import { Wordmark } from '@/components/wordmark';
 /**
  * The home page is deliberately almost empty: a wordmark, one search field and
  * three examples. There is no catalogue to browse because nothing has been
- * fetched yet - retailers are only contacted once a search is submitted.
+ * fetched here. Retailer inventory is collected independently in the background.
  */
 export default function HomePage() {
   return (

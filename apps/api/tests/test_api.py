@@ -111,6 +111,7 @@ def test_sse_stream_delivers_the_full_lifecycle(api_client):
     names = [name for name, _ in frames]
     assert names[0] == "search_started"
     assert names[1] == "intent_parsed"
+    assert frames[1][1]["parser"] == "deterministic"
     assert "retailer_started" in names
     assert "products_added" in names
     assert names[-1] == "search_completed"
@@ -181,11 +182,12 @@ def test_snapshot_for_an_unknown_search_is_a_404(api_client):
 # --------------------------------------------------------------------------
 
 
-def test_retailers_endpoint_lists_connectors(api_client):
+def test_retailers_endpoint_lists_reviewed_websites(api_client):
     retailers = api_client.get("/api/retailers").json()
     assert retailers
     keys = {retailer["key"] for retailer in retailers}
-    assert "northbound" in keys
+    assert "assemblylabel" in keys
+    assert sum(r["enabled"] for r in retailers) == 5
     assert all(retailer["requires_permission"] is False for retailer in retailers)
 
 

@@ -1,14 +1,9 @@
-"""Async database engine and session management.
-
-The database is optional. If ``DATABASE_URL`` is unset the application runs
-with persistence disabled - search, caching, ranking and streaming are all
-unaffected; only accounts, favourites and analytics are skipped.
-"""
+"""Async SQLAlchemy sessions; PostgreSQL or persistent local SQLite."""
 
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -68,12 +63,9 @@ class Database:
         await self.engine.dispose()
 
 
-def build_database(settings: Settings) -> Optional[Database]:
-    if not settings.database_url:
-        log.warning("database.disabled", reason="DATABASE_URL not set")
-        return None
-    try:
-        return Database(settings.database_url, echo=False)
-    except Exception as exc:  # pragma: no cover - bad URL / missing driver
-        log.error("database.unavailable", error=str(exc))
-        return None
+def build_database(settings: Settings) -> Database:
+    from pathlib import Path
+
+    local_path = Path(__file__).resolve().parents[2] / "marle.sqlite3"
+    url = settings.database_url or f"sqlite+aiosqlite:///{local_path}"
+    return Database(url, echo=False)

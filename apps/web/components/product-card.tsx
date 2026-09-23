@@ -62,7 +62,13 @@ export function ProductCard({
               {product.discount_percent}% off
             </Badge>
           ) : null}
-          {!product.in_stock ? <Badge variant="outline">Out of stock</Badge> : null}
+          {product.in_stock === false ? <Badge variant="outline">Out of stock</Badge> : null}
+          {product.freshness === 'stale' ? (
+            <Badge variant="outline">Needs refresh</Badge>
+          ) : null}
+          {product.in_stock === null ? (
+            <Badge variant="outline">Stock unconfirmed</Badge>
+          ) : null}
         </div>
 
         <div className="absolute top-2 right-2">
@@ -92,7 +98,7 @@ export function ProductCard({
               ? 'Free shipping'
               : product.shipping_cost
                 ? `+ ${formatPriceCompact(product.shipping_cost, product.currency)} shipping`
-                : null}
+                : 'Shipping calculated by retailer'}
           </span>
         </div>
 
@@ -115,7 +121,7 @@ export function ProductCard({
         <div className="mt-auto space-y-3 pt-1">
           {otherOffers > 0 ? (
             <p className="text-xs text-muted-foreground">
-              Cheapest of {pluralise(group.offer_count, 'retailer')} ·{' '}
+              Lowest listed price · {pluralise(group.retailers.length, 'retailer')} ·{' '}
               {group.retailers.slice(0, 3).join(', ')}
             </p>
           ) : null}
@@ -125,7 +131,7 @@ export function ProductCard({
               {retailerName}
             </span>
             <span className="shrink-0 text-[0.6875rem] text-muted-foreground/70">
-              {formatRelativeTime(product.source_updated_at ?? product.retrieved_at)}
+              Checked {formatRelativeTime(product.retrieved_at)}
             </span>
           </div>
 

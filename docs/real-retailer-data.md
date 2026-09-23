@@ -1,96 +1,37 @@
 # Product sources and access research
 
-Audience: whoever decides which data sources this product ships with.
+## Current result — 2026-09-23
 
-## Summary
+Normal Python `httpx` requests successfully read public men's collection JSON
+from Assembly Label, Academy Brand, Industrie, Universal Store and Incu.
+Their robots rules allowed those collection URLs, and their `/meta.json`
+responses identified AUD currency. These sources are now enabled in Marle's
+persistent ingestion path. See [the live validation report](live-validation.md).
 
-As of **2026-09-23**, the accepted direction is a persistent menswear product
-index populated by background ingestion, with searches reading indexed data.
-Sources can include retailer/affiliate feeds, supported APIs and accessible
-product pages. Shopping/web-search services supplement discovery. See
-[product-index.md](product-index.md) for the architecture and delivery plan.
+The adapter uses its own Marle user agent and ordinary HTTP requests. It checks
+robots.txt, rate-limits collection requests, honours Retry-After, rejects
+cross-host redirects and pauses on access challenges. Searches run against
+stored products, so an outage need not stop all search results.
 
-**No live source is configured by default, and the index and ingestion workers
-are not implemented.** The earlier eBay-first recommendation is retired; this
-project does not depend on an eBay account or integration. Source credentials
-and commercial arrangements depend on the chosen access method, not on a
-universal account requirement for aggregation.
+## Historical finding
 
----
+Earlier research on 2026-09-22 reported Python requests receiving Cloudflare
+challenges across 93 Shopify candidates. That was an observation of that
+client/environment/request combination. It was not proof that all product
+access was impossible, and the new successful requests supersede that broad
+conclusion. The complete 93-domain benchmark has not been repeated.
 
-## Historical Shopify access findings
+The unused candidate list and old search-time Shopify connector have been
+removed. The maintained [retailer registry](retailer-registry.md) now records
+website evidence separately from product-access evidence and runtime ingestion.
 
-The previous research, recorded on 2026-09-22, reported probes of Shopify's
-public `/products.json` endpoint with the following results. These measurements
-have not been independently rerun as part of the architecture revision.
+## Additional routes
 
-| Result | Count |
-| --- | --- |
-| Domains tested | 213 |
-| Serve a public `products.json` | **93** (verified, currency/country read from each store's `/meta.json`) |
-| Accept our server-side HTTP client | **0 of 93** |
+Retailer/affiliate feeds, supported APIs and shopping/web-search discovery are
+possible future source adapters. They are not implemented by adding a registry
+entry alone. Validate access, coverage, variants, pagination, storage and
+update/removal semantics before enabling a new source.
 
-The report recorded `HTTP 429` with `cf-mitigated: challenge` from the Python
-client, while a different client could retrieve data. This establishes a
-failure of that endpoint/client/deployment combination; it does not establish
-that every product page, supported API or feed is inaccessible.
-
-Recheck representative sources in the intended deployment environment and
-record the endpoint, client, status, access method and date. Do not treat
-changes in client behaviour as a guarantee of durable access. The 93-store list
-remains a research artefact, not validated live coverage. The Shopify connector
-is retained with offline tests and remains disabled by default.
-
----
-
-## Source options to validate
-
-Start with the maintained [retailer registry](retailer-registry.md). Its initial
-ten official menswear websites have dated reviews and source links; all product
-access remains unvalidated. Keep website review and ingestion readiness as
-separate statuses when expanding the list.
-
-| Source | Intended role | Work still required |
-| --- | --- | --- |
-| Retailer or affiliate JSON/XML feed | Scheduled product/offer ingestion | Obtain access where required; validate field mapping, full-snapshot scope, pagination, variants and update/deletion semantics |
-| Supported retailer API | Structured inventory and targeted verification | Confirm merchant access, coverage and limits; implement an adapter |
-| Accessible product pages | Discover or enrich product information | Validate access and structured data per retailer; current HTML connector requires configured permission |
-| Shopping/web-search API | Discover products and retailers beyond existing integrations | Benchmark a provider, initially Serper; validate purchase links, costs and storage conditions; keep unverified details explicit |
-
-No listed route has been proven end to end in Marle's planned indexed mode.
-Authentication does not guarantee complete inventory or freedom from access
-limits. Search-result absence is not a product deletion signal. A current price
-also does not establish availability in the requested size or destination.
-
----
-
-## Recommended sequence
-
-1. Benchmark a representative retailer sample serving Australia. Record usable
-   product fields, freshness, working links, access failures and request cost.
-2. Select a validated source and implement persistent, idempotent ingestion.
-3. Query the index through the existing search experience, with unknown stock
-   and shipping represented explicitly and freshness visible.
-4. Add scheduled refreshes, complete-snapshot reconciliation, expiry and source
-   cooldowns. Verify that failed imports do not delete prior inventory.
-5. Expand source coverage and discovery using measured gaps. Keep fictional
-   products restricted to explicit demo/test mode.
-
-## What is already built and waiting
-
-| Piece | State |
-| --- | --- |
-| Generic JSON/XML feed connector | Implemented with offline tests; mapping and snapshot handling need source-specific validation. |
-| Shopify connector | Implemented with offline tests; disabled by default. |
-| Store discovery list (93 stores, currency + country) | Historical research in `app/data/shopify_stores.json`; not current access validation. |
-| Per-store caching and cold-fetch budget | Implemented for the current search-driven Shopify connector. |
-| Department filtering | Implemented; live-data quality remains unmeasured. |
-| Cross-currency comparison | Implemented with static rates; live rates remain outstanding. |
-| Affiliate click tracking and sub-ids | Implemented; actual retailer integration remains to be validated. |
-| Persistent product/offer index | Not implemented. |
-| Ingestion worker and scheduler | Not implemented. |
-| Indexed search and freshness-aware UI | Not implemented. |
-
-The existing pipeline provides reusable pieces, but a persistent aggregator
-requires new storage, ingestion and search behaviour. It is not a config-only
-change.
+Marle has no dependency on eBay. The current five sources do not require an
+account or API key. Access requirements for future sources depend on their
+chosen method. No method establishes universal coverage or permanent access.

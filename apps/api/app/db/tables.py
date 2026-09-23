@@ -1,10 +1,4 @@
-"""Persistent application tables.
-
-PostgreSQL stores *application* state only - accounts, saved searches,
-favourites, retailer configuration, click events, analytics and connector
-health in the current prototype. Product tables are not implemented yet;
-docs/product-index.md describes the accepted persistent-index architecture.
-"""
+"""Persistent catalogue, ingestion schedules, accounts and analytics."""
 
 from __future__ import annotations
 
@@ -22,7 +16,6 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -106,32 +99,6 @@ class Favourite(Base):
     user: Mapped[User] = relationship(back_populates="favourites")
 
 
-class RetailerConfig(Base):
-    """Database-backed connector configuration.
-
-    Lets an operator enable, disable or re-point a connector without a deploy.
-    Environment variables remain the source of truth at boot; this table is the
-    override layer (see ``docs/adding-a-connector.md``).
-    """
-
-    __tablename__ = "retailer_configs"
-
-    id: Mapped[str] = uuid_pk()
-    key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    display_name: Mapped[str] = mapped_column(String(160), nullable=False)
-    connector_type: Mapped[str] = mapped_column(String(32), nullable=False, default="feed")
-    enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    # True only when the retailer has given written permission (HTML connectors).
-    permission_granted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    affiliate_network: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    affiliate_template: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    config: Mapped[Dict[str, Any]] = mapped_column(JSONColumn, nullable=False, default=dict)
-    created_at: Mapped[datetime] = created_at_column()
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
-    )
-
-
 class AffiliateClickEvent(Base):
     __tablename__ = "affiliate_click_events"
     __table_args__ = (
@@ -177,18 +144,43 @@ class SearchAnalytics(Base):
     created_at: Mapped[datetime] = created_at_column()
 
 
-class ConnectorHealthRecord(Base):
-    __tablename__ = "connector_health_records"
-    __table_args__ = (Index("ix_connector_health_key_created", "connector_key", "created_at"),)
+class CatalogueSource(Base):
+    """Durable schedule and lease: one pending refresh per retailer."""
 
-    id: Mapped[str] = uuid_pk()
-    connector_key: Mapped[str] = mapped_column(String(64), nullable=False)
-    connector_name: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
-    healthy: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    state: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
-    latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    product_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    attempts: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    __tablename__ = "catalogue_sources"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    next_due: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    lease_until: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    lease_token: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
+    last_success: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_attempt: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    created_at: Mapped[datetime] = created_at_column()
+    offer_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class CatalogueOffer(Base):
+    """A variant's price, availability and provenance, published atomically."""
+
+    __tablename__ = "catalogue_offers"
+    __table_args__ = (Index("ix_catalogue_offer_search", "source_key", "category", "expires_at"),)
+
+    source_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    variant_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    category: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    expires_at: Mapped[float] = mapped_column(Float, nullable=False)
+    payload: Mapped[Dict[str, Any]] = mapped_column(JSONColumn, nullable=False)
+
+
+class IngestionRun(Base):
+    __tablename__ = "ingestion_runs"
+    __table_args__ = (Index("ix_ingestion_runs_source_started", "source_key", "started_at"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_at: Mapped[float] = mapped_column(Float, nullable=False)
+    completed_at: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    offer_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

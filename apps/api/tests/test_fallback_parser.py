@@ -149,3 +149,10 @@ def test_parser_rejects_empty_input():
     # surfacing a Pydantic error from deep inside the parser.
     with pytest.raises(ValueError):
         parse_query("   ")
+
+
+@pytest.mark.parametrize(
+    "query,expected", [("linen shirt size M", "m"), ("shirt size XXXL", "xxxl")]
+)
+def test_explicit_letter_sizes(query, expected):
+    assert parse_query(query).size == expected

@@ -1,42 +1,16 @@
-"""Search caching.
-
-Two caches, both keyed by content rather than by user:
-
-``intent:<sha256(query)>``     parsed SearchIntent, so repeating a query never
-                               pays for the LLM twice.
-``results:<intent fingerprint>`` completed search results, so two shoppers who
-                               ask for the same thing in different words share
-                               one set of retailer requests.
-
-Freshness policy (see ``docs/architecture.md``):
-
-* younger than ``CACHE_FRESH_SECONDS`` (30 min) - served immediately, no refresh
-* older, but younger than ``CACHE_MAX_STALE_SECONDS`` (24 h) - served
-  immediately **and** refreshed in the background, because a user just asked
-* older than that, or missing - a live search runs
-
-Retailer data is never refreshed on a timer. A user searching is the only
-event that causes an outbound retailer request.
-"""
+"""Parsed intents, query snapshots and rate counters. Inventory lives in SQL."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import time
-import uuid
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 from app.config import Settings
 from app.logging_config import get_logger
 
 log = get_logger(__name__)
-
-FRESH = "fresh"
-STALE = "stale"
-MISS = "miss"
 
 
 class CacheBackend:
@@ -52,9 +26,6 @@ class CacheBackend:
         raise NotImplementedError
 
     async def incr(self, key: str, ttl_seconds: int) -> int:
-        raise NotImplementedError
-
-    async def set_if_absent(self, key: str, value: str, ttl_seconds: int) -> bool:
         raise NotImplementedError
 
     async def ping(self) -> bool:
@@ -117,14 +88,6 @@ class MemoryCacheBackend(CacheBackend):
             self._store[key] = (str(count), expires_at)
             return count
 
-    async def set_if_absent(self, key: str, value: str, ttl_seconds: int) -> bool:
-        async with self._lock:
-            entry = self._store.get(key)
-            if entry is not None and not self._expired(entry[1]):
-                return False
-            self._store[key] = (value, time.time() + ttl_seconds)
-            return True
-
     async def ping(self) -> bool:
         return True
 
@@ -158,9 +121,6 @@ class RedisCacheBackend(CacheBackend):
         results = await pipeline.execute()
         return int(results[0])
 
-    async def set_if_absent(self, key: str, value: str, ttl_seconds: int) -> bool:
-        return bool(await self._redis.set(key, value, ex=ttl_seconds, nx=True))
-
     async def ping(self) -> bool:
         return bool(await self._redis.ping())
 
@@ -179,17 +139,6 @@ def build_cache_backend(settings: Settings) -> CacheBackend:
         return MemoryCacheBackend()
 
 
-@dataclass
-class CachedResults:
-    payload: Dict[str, Any]
-    stored_at: datetime
-    state: str
-
-    @property
-    def age_seconds(self) -> int:
-        return int((datetime.now(timezone.utc) - self.stored_at).total_seconds())
-
-
 class SearchCache:
     """Domain wrapper around a :class:`CacheBackend`."""
 
@@ -200,7 +149,7 @@ class SearchCache:
 
     # ------------------------------------------------------------------ keys
     def _key(self, kind: str, identifier: str) -> str:
-        return f"{self._namespace}:{kind}:v1:{identifier}"
+        return f"{self._namespace}:{kind}:v2:{identifier}"
 
     # ---------------------------------------------------------------- intent
     async def get_intent(self, query_hash: str) -> Optional[Dict[str, Any]]:
@@ -219,57 +168,6 @@ class SearchCache:
             self._settings.cache_intent_ttl_seconds,
         )
 
-    # --------------------------------------------------------------- results
-    async def get_results(self, fingerprint: str) -> Optional[CachedResults]:
-        raw = await self._safe_get(self._key("results", fingerprint))
-        if not raw:
-            return None
-        try:
-            envelope = json.loads(raw)
-            stored_at = datetime.fromisoformat(envelope["stored_at"])
-        except (json.JSONDecodeError, KeyError, ValueError):
-            return None
-        if stored_at.tzinfo is None:
-            stored_at = stored_at.replace(tzinfo=timezone.utc)
-
-        age = (datetime.now(timezone.utc) - stored_at).total_seconds()
-        if age > self._settings.cache_max_stale_seconds:
-            return None
-        state = FRESH if age <= self._settings.cache_fresh_seconds else STALE
-        return CachedResults(payload=envelope["payload"], stored_at=stored_at, state=state)
-
-    async def set_results(self, fingerprint: str, payload: Dict[str, Any]) -> None:
-        envelope = {
-            "stored_at": datetime.now(timezone.utc).isoformat(),
-            "payload": payload,
-        }
-        await self._safe_set(
-            self._key("results", fingerprint),
-            json.dumps(envelope, default=str),
-            self._settings.cache_max_stale_seconds,
-        )
-
-    async def invalidate_results(self, fingerprint: str) -> None:
-        await self._backend.delete(self._key("results", fingerprint))
-
-    # ------------------------------------------------ retailer catalogues
-    async def get_catalogue(self, identifier: str) -> Optional[Any]:
-        """A retailer's published catalogue, as last read."""
-        raw = await self._safe_get(self._key("catalogue", identifier))
-        if not raw:
-            return None
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            return None
-
-    async def set_catalogue(self, identifier: str, payload: Any, ttl_seconds: int) -> None:
-        await self._safe_set(
-            self._key("catalogue", identifier),
-            json.dumps(payload, default=str),
-            ttl_seconds,
-        )
-
     # ------------------------------------------------------------ search jobs
     async def get_search_snapshot(self, search_id: str) -> Optional[Dict[str, Any]]:
         raw = await self._safe_get(self._key("search", search_id))
@@ -284,23 +182,8 @@ class SearchCache:
         await self._safe_set(
             self._key("search", search_id),
             json.dumps(payload, default=str),
-            self._settings.cache_max_stale_seconds,
+            self._settings.cache_snapshot_ttl_seconds,
         )
-
-    # ------------------------------------------------------------------ lock
-    async def acquire_lock(self, fingerprint: str) -> Optional[str]:
-        """Prevent two identical searches from hitting retailers at once."""
-        token = uuid.uuid4().hex
-        acquired = await self._backend.set_if_absent(
-            self._key("lock", fingerprint), token, self._settings.cache_lock_timeout_seconds
-        )
-        return token if acquired else None
-
-    async def release_lock(self, fingerprint: str, token: str) -> None:
-        key = self._key("lock", fingerprint)
-        current = await self._safe_get(key)
-        if current == token:
-            await self._backend.delete(key)
 
     # ------------------------------------------------------------ rate limits
     async def increment_rate_counter(self, identifier: str, window_seconds: int) -> int:
