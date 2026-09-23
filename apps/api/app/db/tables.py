@@ -2,8 +2,8 @@
 
 PostgreSQL stores *application* state only - accounts, saved searches,
 favourites, retailer configuration, click events, analytics and connector
-health. Product data is deliberately absent: there is no master catalogue, and
-retailer results live in Redis with a 24-hour ceiling.
+health in the current prototype. Product tables are not implemented yet;
+docs/product-index.md describes the accepted persistent-index architecture.
 """
 
 from __future__ import annotations

@@ -1,8 +1,12 @@
 # Clothing Aggregator API
 
-FastAPI service for on-demand menswear search: natural-language query parsing,
+FastAPI prototype for menswear search: natural-language query parsing,
 concurrent retailer connectors, normalisation, de-duplication, deterministic
 ranking, Redis caching and Server-Sent Event streaming.
+
+The default sources contain fictional products. A persistent product index and
+scheduled ingestion are the accepted next architecture, but neither is
+implemented yet. See the [product-index plan](../../docs/product-index.md).
 
 Full documentation lives in the repository root:
 [`README.md`](../../README.md) and [`docs/`](../../docs).
@@ -31,9 +35,11 @@ Or, from the repository root, `make install-api` does all of the above.
 
 Interactive docs at <http://localhost:8000/docs>.
 
-Redis, PostgreSQL and an Anthropic API key are all optional — the service falls
-back to an in-process cache, skips persistence, and parses queries
-deterministically.
+In the current development/demo mode, Redis, PostgreSQL and an Anthropic API key
+are all optional — the service falls back to an in-process cache, skips
+persistence, and parses queries deterministically.
+
+The planned live indexed mode will require PostgreSQL and an ingestion worker.
 
 ## Test and lint
 

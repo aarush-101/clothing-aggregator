@@ -2,24 +2,42 @@
 
 Audience: engineers working on this codebase.
 
+## Accepted direction and current implementation
+
+As of **2026-09-23**, Marle's target architecture includes a persistent product
+index and scheduled ingestion. The original restrictions against a preloaded
+catalogue and background crawling are superseded.
+
+Collection will run independently of shopper searches: workers ingest feeds,
+APIs and accessible product pages, update product/variant offers and expire
+stale data. Search will retrieve candidates from the index and reuse the
+existing parsing, ranking and presentation pipeline. Targeted discovery and
+refresh jobs may be requested by a search without blocking initial results.
+
+**This is a design decision, not implemented functionality.** The code still
+uses the connector-based request lifecycle documented below. No product index,
+ingestion worker or scheduler exists yet. See
+[product-index.md](product-index.md) for the target data model, source failure
+handling, freshness/removal rules and delivery acceptance checks.
+
 ## The shape of the problem
 
 A menswear search engine that aggregates many retailers has three hard parts:
 
 1. **Understanding the request.** "Relaxed black linen shirt under $120 that
    ships to Sydney" is six constraints in one sentence.
-2. **Talking to many slow, unreliable third parties at once** without letting
-   the slowest one define the experience.
+2. **Keeping product data fresh across slow, unreliable sources** while
+   keeping shopper searches responsive.
 3. **Making heterogeneous inventory comparable** — the same shirt listed by
    three retailers under three names at three prices.
 
-Everything below follows from those three, plus one product constraint: **no
-preloaded catalogue and no scheduled crawling.** Retailer data is fetched
-because a person asked for it, and is discarded within 24 hours.
+The current prototype fetches retailer data because a person searches and
+retains results in a cache for at most 24 hours. This describes today's
+implementation, not a constraint on the target architecture.
 
 ---
 
-## Request lifecycle
+## Current request lifecycle
 
 ```
 POST /api/search
@@ -58,7 +76,7 @@ GET /api/search/{id}          ◄── snapshot, for reconnects and no-JS clien
 
 ---
 
-## Module map
+## Current module map
 
 ### `apps/api/app`
 
@@ -77,7 +95,7 @@ GET /api/search/{id}          ◄── snapshot, for reconnects and no-JS clien
 | `services/event_bus.py` | Per-search event log with replay and fan-out. |
 | `services/affiliate.py` | Affiliate deep links and click sub-ids. |
 | `services/currency.py` | Cross-currency comparison for price filters. |
-| `connectors/` | `base` (the interface), `registry`, and the four connector kinds. |
+| `connectors/` | `base` (the interface), `registry`, and mock, feed, API, HTML and Shopify implementations. |
 | `db/` | SQLAlchemy models, session, repositories. No product table. |
 | `api/` | FastAPI routers. |
 
@@ -138,6 +156,11 @@ becomes a search keyword.
 ---
 
 ## Connectors
+
+The interface below is for the current search-driven connectors. Background
+ingestion needs adapters that also report pagination, source scope and snapshot
+completeness. A filtered `search(intent)` response cannot establish whether a
+retailer removed an item. See [product-index.md](product-index.md).
 
 ```python
 class RetailerConnector(ABC):
@@ -232,6 +255,10 @@ stock and multi-retailer availability.
 
 ## Caching
 
+This section describes the current caches. The target product index has its own
+freshness and retention rules. Future response caches must account for index
+revisions and offer expiry, not just the intent fingerprint and elapsed TTL.
+
 Two caches, both content-addressed:
 
 | Key | Value | TTL |
@@ -276,17 +303,19 @@ sessions or a Redis pub/sub implementation of the same interface — see
 
 ## Database
 
-PostgreSQL stores application state only: `users`, `saved_searches`,
+PostgreSQL currently stores application state only: `users`, `saved_searches`,
 `favourites`, `retailer_configs`, `affiliate_click_events`, `search_analytics`,
 `connector_health_records`.
 
-**There is no product table.** That is the point of the product: retailer data
-lives in Redis with a 24-hour ceiling and is re-fetched on demand.
+**There is no product table yet.** Persistent listings, variant offers, source
+observations and ingestion jobs are planned in [product-index.md](product-index.md).
+Redis will remain a cache rather than the authoritative product store.
 
-The database is optional. With `DATABASE_URL` unset, accounts and analytics are
-skipped and search is unaffected. A `GUID` type decorator maps to native
-`UUID` on PostgreSQL and `CHAR(36)` elsewhere so the test suite runs on SQLite
-with no database server.
+The database is optional for the current development/demo mode. With
+`DATABASE_URL` unset, accounts and analytics are skipped and demo search is
+unaffected. The target live indexed mode will require PostgreSQL. A `GUID` type
+decorator maps to native `UUID` on PostgreSQL and `CHAR(36)` elsewhere so the
+existing test suite runs on SQLite with no database server.
 
 ---
 

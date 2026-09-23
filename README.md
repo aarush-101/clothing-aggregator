@@ -1,4 +1,4 @@
-# Marle — on-demand menswear search
+# Marle — menswear search aggregator
 
 > **Status: incomplete prototype.** The search pipeline and UI are implemented,
 > but no working live product source is configured in the default setup.
@@ -10,9 +10,15 @@ matching products across real retailers. The prototype interprets requests,
 queries configured connectors concurrently, normalises and de-duplicates their
 results, ranks them, and streams them into the page.
 
-The intended product searches on demand, with no scheduled crawler or permanent
-live inventory database. The repository does contain a demo catalogue. Search
-results are cached for at most 24 hours, using Redis or an in-process fallback.
+The accepted direction is a Jora-style aggregator: maintain a product index,
+refresh sources in the background, and search indexed products when a shopper
+submits a prompt. Shoppers follow links to retailers to buy. Scheduled ingestion
+and persistent product storage are now in scope; the previous restrictions
+against them have been retired.
+
+**That architecture is not implemented yet.** The running prototype still
+queries connectors on demand and caches results for at most 24 hours, using
+Redis or an in-process fallback.
 
 ## Implementation status
 
@@ -24,22 +30,29 @@ results are cached for at most 24 hours, using Redis or an in-process fallback.
 - **Live discovery is missing:** the app searches configured sources; it does
   not yet discover products across the web. The Shopify connector is disabled
   by default following reported blocking during earlier access tests.
+- **Index and workers are missing:** there are no persistent product/offer
+  tables, scheduled ingestion workers or index-backed search yet.
 - **Real-world quality is unverified:** passing automated tests demonstrates
   the pipeline against fixtures, not live retailer coverage, accurate stock,
   shipping availability or reliable access to product data.
 
-### Proposed next step — not implemented
+### Accepted direction — not implemented
 
-Evaluate a shopping-search API, starting with a Serper trial, for broad product
-discovery. Supplement shopping results with ordinary web search and selective
-checks of accessible product pages. This direction requires a search-provider
-API key; it does not depend on an eBay account or eBay integration.
+Collect product data from retailer feeds, APIs and accessible product pages,
+normalise it into a persistent index, and refresh it on source-specific
+schedules. Use shopping/web-search APIs as additional discovery sources.
+Evaluate Serper as an initial candidate; provider access requires an API key.
+There is no dependency on an eBay account or eBay integration.
 
-Before choosing a provider, benchmark real menswear prompts for relevance,
-retailer diversity, working purchase links, Australian coverage, latency and
-cost. Then integrate the chosen source and represent unconfirmed stock, sizes
-and shipping explicitly. No provider integration or live benchmark has been
-completed, and comprehensive coverage or zero blocking cannot be guaranteed.
+First validate a representative set of menswear sources serving Australia.
+Then implement persistent ingestion, indexed search, and scheduled refreshes
+with expiry and explicit unknown stock, sizes and shipping. Search should
+remain usable during source outages without presenting stale offers as freshly
+verified. No live benchmark has been completed, and comprehensive coverage or
+zero blocking cannot be guaranteed.
+
+See the [product-index decision and delivery plan](docs/product-index.md) for
+storage, refresh/removal rules and acceptance checks.
 
 The pipeline below currently runs against demo sources in the default setup:
 
@@ -152,7 +165,10 @@ cd apps/web && npm run test:e2e            # 44 end-to-end tests (desktop + mobi
 
 ---
 
-## What a search actually does
+## What a search currently does
+
+This describes the existing connector-based prototype. The target indexed
+search lifecycle is specified in [product-index.md](docs/product-index.md).
 
 `POST /api/search` returns a `search_id` immediately and runs the job in the
 background. The browser subscribes to
@@ -186,6 +202,9 @@ relaxed, under $120” share one cache entry.
 A Redis lock stops two identical searches from hitting retailers at the same
 time; the second waits for the first and reuses its result. Every response
 carries a visible last-updated time and a cached/refreshed label.
+
+These are current search-response cache lifetimes. They will not determine
+product-index retention; that will use separate source and freshness rules.
 
 ---
 
@@ -268,10 +287,11 @@ authentication — see [`docs/limitations.md`](docs/limitations.md).
 
 | Document | Contents |
 | --- | --- |
-| [Architecture](docs/architecture.md) | Request lifecycle, module map, ranking and de-duplication internals, design decisions |
+| [Product index](docs/product-index.md) | Accepted target architecture, background ingestion, freshness rules and delivery plan; not yet implemented |
+| [Architecture](docs/architecture.md) | Current prototype lifecycle and modules, with the transition to indexed search |
 | [API reference](docs/api.md) | Every endpoint, every SSE payload, error shapes |
 | [Adding a connector](docs/adding-a-connector.md) | Step-by-step, plus the HTML-connector policy |
 | [Affiliate networks](docs/affiliate-networks.md) | Awin, Impact, CJ, Rakuten and direct integrations |
-| [Retailer-data research](docs/real-retailer-data.md) | Earlier access findings and source options; its eBay-first recommendation is superseded by the proposed approach above |
+| [Retailer-data research](docs/real-retailer-data.md) | Source strategy, historical access findings and remaining validation |
 | [Deployment](docs/deployment.md) | Vercel, Railway/Render/Fly, Neon/Supabase, Upstash |
 | [Limitations](docs/limitations.md) | Known gaps and recommended next steps |

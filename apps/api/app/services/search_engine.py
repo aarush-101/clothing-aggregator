@@ -11,8 +11,9 @@ One search is one background task that:
 6. streams each step to the browser as a Server-Sent Event
 7. caches the completed result
 
-Retailers are only ever contacted because a user searched. There is no
-scheduled crawl and no preloaded catalogue.
+This is the current search-driven prototype. The accepted target architecture
+adds persistent product storage and scheduled ingestion; see docs/product-index.md.
+Neither capability is implemented in this module yet.
 """
 
 from __future__ import annotations

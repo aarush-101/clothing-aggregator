@@ -1,6 +1,8 @@
 # Limitations and next steps
 
-An honest account of what this MVP does not do, and what I would build next.
+An account of what the current prototype does not do. The accepted direction
+now includes a persistent product index and background ingestion; see
+[product-index.md](product-index.md). Those capabilities are not implemented.
 
 ---
 
@@ -17,15 +19,25 @@ The consequence is that **"View at retailer" links for mock products do not
 resolve.** The click is still tracked and the affiliate template still expands —
 only the destination is fictional.
 
-*Next:* onboard one real affiliate feed
-([affiliate-networks.md](affiliate-networks.md)) and drop the mocks from
-`ENABLED_CONNECTORS` in production. The mocks stay valuable for tests.
+*Next:* validate a real source and ingest it into the planned product index.
+Keep mocks in explicit demo/test mode; live indexed search must never silently
+fall back to fictional inventory.
 
 ### No real retailer relationships
 
 Nothing here has credentials for Awin, Impact, CJ or Rakuten. Those require
 approved publisher accounts and per-advertiser approval. The generic feed
-connector is built for exactly this and needs configuration, not code.
+connector provides field mapping, but each source still needs validation and
+an ingestion adapter with pagination and completeness tracking.
+
+### Unknown stock and shipping are not modelled accurately
+
+`Product.in_stock` defaults to `True`, and `total_price` treats a missing shipping
+cost as zero. Those defaults cannot support reliable indexed offers when source
+data is incomplete or stale.
+
+*Next:* explicit unknown availability and shipping, variant-specific prices and
+verification timestamps across storage, ranking, filters and UI.
 
 ### Currency conversion uses static rates
 
@@ -112,16 +124,17 @@ they add latency and the tables grow unbounded.
 *Next:* push to a queue, and add a retention policy (or roll up
 `connector_health_records` hourly).
 
-### No background jobs at all
+### No product index or scheduled ingestion yet
 
-This is intentional — the product's core constraint is that retailer data is
-fetched only on demand. But price and restock alerts, which the schema already
-anticipates (`saved_searches.alerts_enabled`), need a scheduler.
+The current search engine starts tasks in response to user searches. There is
+no independent ingestion worker, scheduler or persistent product table. The
+former on-demand-only restriction has been retired; these are now missing
+capabilities rather than deliberate exclusions.
 
-*Next:* a worker that re-runs *saved* searches on a user-initiated cadence. Note
-that this is still user-initiated in the sense that matters — a person asked to
-be told when this specific thing changes — but it does mean scheduled retailer
-requests, so it needs retailer agreement.
+*Next:* persistent listings and variant offers, idempotent ingestion, indexed
+candidate retrieval, then scheduled refresh/expiry jobs. Follow
+[product-index.md](product-index.md) for leases, snapshot completeness and
+source budgets. Price/restock alerts can build on that infrastructure later.
 
 ---
 
@@ -170,8 +183,8 @@ Filters and sorting operate on the result set already returned. Fast and
 instant, but you cannot filter to something no retailer returned for the
 original query.
 
-*Next:* when a filter would materially change which retailers matter, re-run the
-search with an adjusted intent instead of filtering locally.
+*Next:* in indexed mode, re-query the index when a filter needs products outside
+the returned page. Local filtering remains useful within an already loaded set.
 
 ### No design-system webfont
 
@@ -219,11 +232,12 @@ VoiceOver before launch.
 
 ## Recommended order of work
 
-1. Connect one real affiliate feed end to end, including click reconciliation.
-2. Redis pub/sub for the event broker, so the API can scale past one instance.
-3. Real authentication, account deletion and data export.
-4. Live FX rates.
-5. Semantic relevance as an additional ranking dimension, measured against a
-   labelled set.
-6. Per-retailer circuit breakers driven by `connector_health_records`.
-7. Outfit composition for occasion queries.
+1. Validate representative live menswear sources serving Australia.
+2. Add persistent listings/offers and import a validated source idempotently.
+3. Search the index, with explicit unknown values and visible freshness.
+4. Add scheduled ingestion, leases, source cooldowns, expiry and cache invalidation.
+5. Expand discovery through additional sources and evaluate a search provider.
+6. Complete launch requirements such as live FX, account privacy controls and
+   multi-instance event delivery; benchmark search quality and source reliability.
+7. Consider semantic ranking and outfit composition after measuring the core
+   search experience.

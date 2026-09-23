@@ -1,8 +1,17 @@
 # Adding a retailer connector
 
+This guide describes the current search-driven connector interface. The
+accepted architecture also includes scheduled ingestion and a persistent index;
+see [product-index.md](product-index.md). Those are not implemented yet.
+
 Every product source implements one interface and returns one `Product` shape.
 Nothing downstream — ranking, de-duplication, caching, the UI — needs to know
 where a garment came from.
+
+For background ingestion, reuse normalisation through an adapter that reports
+source scope, pagination and snapshot completeness. A connector's query-filtered
+or capped result set must never be used to delete products absent from that set.
+Adding a feed configuration today does not create a scheduled import.
 
 ## Choose the right kind
 

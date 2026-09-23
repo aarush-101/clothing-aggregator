@@ -1,7 +1,8 @@
 """Data access for accounts, favourites, clicks and analytics.
 
-Every method degrades gracefully when the database is not configured, so the
-search experience never depends on Postgres being up.
+These application-state repositories degrade gracefully when the database is
+not configured. The current demo search can run without Postgres; the planned
+product-index repository will require it (see docs/product-index.md).
 """
 
 from __future__ import annotations

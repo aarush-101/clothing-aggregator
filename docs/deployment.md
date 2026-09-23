@@ -1,5 +1,10 @@
 # Deployment
 
+This guide deploys the current demo/connector-based prototype. The accepted
+[product-index architecture](product-index.md) additionally needs product
+migrations and a separately deployed ingestion worker/scheduler; those do not
+exist yet. Deploying the services below does not provide live indexed search.
+
 The frontend is a standard Next.js app; the backend is a standard ASGI service.
 Nothing is tied to a particular host.
 
