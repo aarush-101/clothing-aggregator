@@ -31,7 +31,6 @@ class ClickRequest(BaseModel):
     product_id: str = Field(min_length=1, max_length=255)
     destination_url: str = Field(max_length=2048)
     search_id: Optional[str] = Field(default=None, max_length=64)
-    subid: Optional[str] = Field(default=None, max_length=64)
     price: Optional[float] = Field(default=None, ge=0)
     currency: Optional[str] = Field(default=None, max_length=3)
     position: Optional[int] = Field(default=None, ge=0, le=10000)

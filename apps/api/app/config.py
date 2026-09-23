@@ -7,14 +7,11 @@ instead of half-working.
 
 from __future__ import annotations
 
-import json
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from pydantic import Field, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-_SAFE_URL_SCHEMES = ("http://", "https://")
 
 
 class Settings(BaseSettings):
@@ -66,12 +63,10 @@ class Settings(BaseSettings):
     # --- Persistent catalogue ------------------------------------------------
     ingestion_enabled: bool = True
     ingestion_poll_seconds: int = Field(default=60, ge=1)
+    # Minimum gap between any two retailer requests, across all sources.
+    ingestion_request_interval_seconds: float = Field(default=2.0, ge=0)
     catalogue_stale_seconds: int = Field(default=43200, ge=60)
     catalogue_expire_seconds: int = Field(default=172800, ge=60)
-
-    # --- Affiliate links ----------------------------------------------------
-    affiliate_subid_prefix: str = "ca"
-    affiliate_templates: str = "{}"
 
     # ------------------------------------------------------------------ utils
     @field_validator("log_level")
@@ -141,21 +136,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
-
-    @property
-    def affiliate_template_map(self) -> Dict[str, str]:
-        try:
-            raw = json.loads(self.affiliate_templates or "{}")
-        except json.JSONDecodeError as exc:  # pragma: no cover - config error path
-            raise ValueError(f"AFFILIATE_TEMPLATES is not valid JSON: {exc}") from exc
-        if not isinstance(raw, dict):
-            raise ValueError("AFFILIATE_TEMPLATES must be a JSON object")
-        templates: Dict[str, str] = {}
-        for retailer, template in raw.items():
-            if not isinstance(template, str) or not template.startswith(_SAFE_URL_SCHEMES):
-                raise ValueError(f"affiliate template for '{retailer}' must be an http(s) URL")
-            templates[str(retailer)] = template
-        return templates
 
     @property
     def is_production(self) -> bool:

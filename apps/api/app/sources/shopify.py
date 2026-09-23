@@ -39,10 +39,25 @@ def _decimal(value) -> Optional[Decimal]:
 
 
 class SourceError(RuntimeError):
-    def __init__(self, message: str, *, retry_after: float = 3600, blocked: bool = False):
+    def __init__(
+        self,
+        message: str,
+        *,
+        retry_after: float = 3600,
+        blocked: bool = False,
+        rate_limited: bool = False,
+    ):
         super().__init__(message)
         self.retry_after = retry_after
         self.blocked = blocked
+        # Shopify rate-limits a client across every store it hosts, so a 429 or
+        # challenge from one store means all Shopify sources should back off.
+        self.rate_limited = rate_limited
+
+
+# One request clock shared by every source: pacing per store is not enough when
+# the platform counts all of its storefronts together.
+_last_request = [0.0]
 
 
 def retry_delay(value: Optional[str]) -> float:
@@ -66,20 +81,26 @@ def normalise_variants(raw: dict, retailer: Retailer, observed_at: datetime) -> 
     product_type = str(raw.get("product_type") or "")
     tags = raw.get("tags") or []
     tags = tags if isinstance(tags, list) else tags.split(",")
-    department = " ".join([title, product_type, *tags]).lower()
+    vendor = str(raw.get("vendor") or "")
+    department = " ".join([title, product_type, vendor, *tags]).lower()
     # Collections are men's scoped; reject explicit non-menswear and gift cards.
     if re.search(r"\b(women|womens|women's|girls|boys|kids|baby|gift card)\b", department):
         return []
-    brand = sanitise_text(raw.get("vendor"))
+    brand = sanitise_text(vendor)
     if brand and brand.lower() in {"mens", "men", "womens", "women", "unisex"}:
         brand = None  # Some stores use vendor as a department, not a brand.
-    brand = brand or retailer.ingestion.default_brand
+    mapped = {k.lower(): v for k, v in retailer.ingestion.vendor_brands.items()}
+    brand = mapped.get((brand or "").lower(), brand) or retailer.ingestion.default_brand
+    if brand and brand.isupper() and len(brand) > 4:
+        brand = brand.title()  # "DEUS EX MACHINA" reads as "Deus Ex Machina"; "NN07" stays.
     description = sanitise_text(raw.get("body_html"))
     # Multi-brand titles lead with the brand; "Tommy Jeans ... Card Holder" is not jeans.
     garment = title
     if brand and title.lower().startswith(brand.lower()):
         garment = title[len(brand) :]
     category = classify_category(garment) or classify_category(product_type)
+    if category is None and retailer.ingestion.garments_only:
+        return []
     materials = find_terms(description or "", MATERIAL_SYNONYMS)
     options = {
         str(option.get("name", "")).lower(): int(option.get("position", index + 1))
@@ -129,7 +150,6 @@ def normalise_variants(raw: dict, retailer: Retailer, observed_at: datetime) -> 
                 retailer=retailer.key,
                 retailer_name=retailer.name,
                 product_url=url,
-                affiliate_url=url,
                 image_url=sanitise_url(variant_image.get("src") or image),
                 category=category or product_type.lower() or None,
                 colours=colours,
@@ -160,7 +180,6 @@ class ShopifySource:
         self._client = client
         self._owned_client = client is None
         self.delay = request_delay
-        self._last_request = 0.0
         self._robots: Optional[Protego] = None
 
     async def _get(self, url: str, *, robots: bool = False) -> httpx.Response:
@@ -177,8 +196,8 @@ class ShopifySource:
                 raise SourceError(
                     "Collection access is disallowed by robots.txt", blocked=True, retry_after=86400
                 )
-            await asyncio.sleep(max(0, self.delay - (time.monotonic() - self._last_request)))
-            self._last_request = time.monotonic()
+            await asyncio.sleep(max(0, self.delay - (time.monotonic() - _last_request[0])))
+            _last_request[0] = time.monotonic()
             async with self._client.stream("GET", url, follow_redirects=False) as response:
                 if (
                     response.status_code in {401, 403, 429}
@@ -187,6 +206,8 @@ class ShopifySource:
                     raise SourceError(
                         f"Source paused after HTTP {response.status_code}",
                         blocked=True,
+                        rate_limited=response.status_code == 429
+                        or response.headers.get("cf-mitigated") == "challenge",
                         retry_after=retry_delay(response.headers.get("retry-after")),
                     )
                 if response.is_redirect:

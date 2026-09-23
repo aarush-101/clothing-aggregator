@@ -56,12 +56,6 @@ def test_cors_origins_are_parsed_from_a_comma_separated_list():
     assert settings.cors_origins == ["http://a.test", "http://b.test"]
 
 
-def test_affiliate_templates_must_be_http_urls():
-    settings = Settings(**base(affiliate_templates='{"shop": "javascript:alert(1)"}'))
-    with pytest.raises(ValueError):
-        _ = settings.affiliate_template_map
-
-
 def test_catalogue_expiry_must_exceed_stale_threshold():
     with pytest.raises(ValidationError):
         Settings(**base(catalogue_stale_seconds=3600, catalogue_expire_seconds=3600))

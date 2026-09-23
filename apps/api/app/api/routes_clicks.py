@@ -1,8 +1,7 @@
-"""Affiliate click tracking.
+"""Outbound click analytics.
 
-The browser navigates straight to the retailer (fast, and the affiliate
-network sees a normal referral); this endpoint records the click for
-attribution and analytics. It never redirects to a URL it has not validated.
+The browser navigates straight to the retailer's product page; this endpoint
+only records the click. It never redirects to a URL it has not validated.
 """
 
 from __future__ import annotations
@@ -13,7 +12,6 @@ from app.db.repository import AccountRepository, fingerprint_client
 from app.deps import AppContext, get_accounts, get_context, get_optional_user
 from app.logging_config import get_logger
 from app.models.api import ClickRequest, ClickResponse
-from app.services.affiliate import extract_subid
 from app.services.ratelimit import client_identifier
 
 log = get_logger(__name__)
@@ -28,13 +26,11 @@ async def record_click(
     accounts: AccountRepository = Depends(get_accounts),
     user=Depends(get_optional_user),
 ) -> ClickResponse:
-    subid = payload.subid or extract_subid(payload.destination_url)
     log.info(
         "click.recorded",
         retailer=payload.retailer,
         product_id=payload.product_id,
         search_id=payload.search_id,
-        subid=subid,
     )
 
     click_id = None
@@ -46,7 +42,6 @@ async def record_click(
                     "user_id": getattr(user, "id", None),
                     "retailer": payload.retailer,
                     "product_id": payload.product_id,
-                    "subid": subid,
                     "destination_url": payload.destination_url,
                     "price": payload.price,
                     "currency": (payload.currency or "AUD").upper(),

@@ -60,11 +60,11 @@ describe('ProductCard', () => {
     );
     expect(link).toHaveAttribute('target', '_blank');
     expect(link.getAttribute('rel')).toContain('noopener');
-    expect(link.getAttribute('rel')).toContain('sponsored');
+    expect(link.getAttribute('rel')).not.toContain('sponsored');
     expect(link).toHaveTextContent('View at Northbound Supply');
   });
 
-  it('records the click for affiliate attribution', async () => {
+  it('records the outbound click', async () => {
     const user = userEvent.setup();
     render(<ProductCard group={makeGroup()} position={3} searchId="s1" />);
     await user.click(screen.getByTestId('view-at-retailer'));
@@ -89,14 +89,14 @@ describe('ProductCard', () => {
           retailer: 'harbour',
           retailer_name: 'Harbour & Hale',
           price: 129,
-          affiliate_url: 'https://harbour.example/b',
+          product_url: 'https://harbour.example/b',
         }),
         makeProduct({
           product_id: 'c',
           retailer: 'meridian',
           retailer_name: 'Meridian Menswear',
           price: 139,
-          affiliate_url: 'https://meridian.example/c',
+          product_url: 'https://meridian.example/c',
         }),
       ],
       retailers: ['Northbound Supply', 'Harbour & Hale', 'Meridian Menswear'],

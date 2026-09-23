@@ -27,11 +27,11 @@ website evidence separately from product-access evidence and runtime ingestion.
 
 ## Additional routes
 
-Retailer/affiliate feeds, supported APIs and shopping/web-search discovery are
-possible future source adapters. They are not implemented by adding a registry
+Retailer product feeds, supported APIs and shopping/web-search discovery are
+possible future source adapters (affiliate links are deliberately not used). They are not implemented by adding a registry
 entry alone. Validate access, coverage, variants, pagination, storage and
 update/removal semantics before enabling a new source.
 
-Marle has no dependency on eBay. The current eight sources do not require an
+Marle has no dependency on eBay. The current 50 sources do not require an
 account or API key. Access requirements for future sources depend on their
 chosen method. No method establishes universal coverage or permanent access.

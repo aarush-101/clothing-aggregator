@@ -9,7 +9,6 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
     retailer: 'northbound',
     retailer_name: 'Northbound Supply',
     product_url: 'https://northbound-supply.example/products/kessler-shirt',
-    affiliate_url: 'https://northbound-supply.example/products/kessler-shirt',
     image_url: 'https://images.example/kessler-shirt.jpg',
     category: 'shirt',
     colours: ['black'],

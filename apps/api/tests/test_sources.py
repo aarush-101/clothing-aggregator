@@ -14,8 +14,10 @@ from tests.catalogue_fixtures import raw_product, source
 
 def test_registry_has_reviewed_sources_and_separate_enabled_coverage():
     retailers = load_retailers()
-    assert len(retailers) == 13
-    assert len([r for r in retailers if r.ingestion and r.ingestion.enabled]) == 8
+    enabled = [r for r in retailers if r.ingestion and r.ingestion.enabled]
+    assert len(enabled) >= 8
+    # Only sources whose product access was actually tested are switched on.
+    assert all(r.data_access["status"] == "validated" for r in enabled)
 
 
 def test_variant_price_size_colour_stock_and_url_stay_together():
@@ -146,3 +148,23 @@ def test_internal_title_markers_are_removed():
     raw = raw_product()
     raw["title"] = "Beta Jacket - Black Sapphire [MERGED 20260806]"
     assert normalise_variants(raw, source(), utcnow())[0].title == "Beta Jacket - Black Sapphire"
+
+
+def test_garments_only_sources_skip_unrecognised_products():
+    retailer = source().model_copy(deep=True)
+    retailer.ingestion.garments_only = True
+    raw = raw_product()
+    raw["title"], raw["product_type"] = "Scented Candle", "Homewares"
+    assert normalise_variants(raw, retailer, utcnow()) == []
+    raw["title"] = "Relaxed Linen Shirt"
+    assert normalise_variants(raw, retailer, utcnow())
+
+
+def test_internal_vendor_names_map_to_the_label_and_womens_vendors_are_excluded():
+    retailer = source().model_copy(deep=True)
+    retailer.ingestion.vendor_brands = {"Levi AUS/NZ Production": "Levi's"}
+    raw = raw_product()
+    raw["vendor"] = "LEVI AUS/NZ PRODUCTION"
+    assert {p.brand for p in normalise_variants(raw, retailer, utcnow())} == {"Levi's"}
+    raw["vendor"] = "Kiss Chacey Womens"
+    assert normalise_variants(raw, retailer, utcnow()) == []

@@ -3,66 +3,6 @@
   "note": "Maintained retailer website registry. Website verification means the official menswear page was reviewed through web browsing, which may use cached page content. It does not establish working automated product access, current stock, shipping coverage or an enabled Marle integration.",
   "retailers": [
     {
-      "key": "theiconic",
-      "name": "THE ICONIC",
-      "website_url": "https://www.theiconic.com.au/",
-      "menswear_url": "https://www.theiconic.com.au/men/",
-      "storefront_market": "AU",
-      "website_verification": {
-        "status": "verified",
-        "reviewed_on": "2026-09-23",
-        "method": "official_page_review_via_web",
-        "evidence_url": "https://www.theiconic.com.au/men/",
-        "notes": "Official men's fashion section lists clothing categories including shirts, polos, T-shirts and jeans."
-      },
-      "data_access": {
-        "status": "not_validated",
-        "method": null,
-        "last_checked_on": null,
-        "evidence_url": null
-      }
-    },
-    {
-      "key": "uniqlo_au",
-      "name": "UNIQLO Australia",
-      "website_url": "https://www.uniqlo.com/au/en/",
-      "menswear_url": "https://www.uniqlo.com/au/en/men",
-      "storefront_market": "AU",
-      "website_verification": {
-        "status": "verified",
-        "reviewed_on": "2026-09-23",
-        "method": "official_page_review_via_web",
-        "evidence_url": "https://www.uniqlo.com/au/en/men",
-        "notes": "Australian men's section lists outerwear, knitwear, shirts, T-shirts, bottoms and jeans."
-      },
-      "data_access": {
-        "status": "not_validated",
-        "method": null,
-        "last_checked_on": null,
-        "evidence_url": null
-      }
-    },
-    {
-      "key": "countryroad",
-      "name": "Country Road",
-      "website_url": "https://www.countryroad.com.au/",
-      "menswear_url": "https://www.countryroad.com.au/man-clothing/",
-      "storefront_market": "AU",
-      "website_verification": {
-        "status": "verified",
-        "reviewed_on": "2026-09-23",
-        "method": "official_page_review_via_web",
-        "evidence_url": "https://www.countryroad.com.au/man-clothing/",
-        "notes": "Official Australian men's clothing collection displays menswear listings and AUD prices."
-      },
-      "data_access": {
-        "status": "not_validated",
-        "method": null,
-        "last_checked_on": null,
-        "evidence_url": null
-      }
-    },
-    {
       "key": "assemblylabel",
       "name": "Assembly Label",
       "website_url": "https://assemblylabel.com/",
@@ -88,26 +28,6 @@
         "currency": "AUD",
         "refresh_seconds": 21600,
         "max_pages": 30
-      }
-    },
-    {
-      "key": "ascolour_au",
-      "name": "AS Colour Australia",
-      "website_url": "https://www.ascolour.com.au/",
-      "menswear_url": "https://www.ascolour.com.au/men/",
-      "storefront_market": "AU",
-      "website_verification": {
-        "status": "verified",
-        "reviewed_on": "2026-09-23",
-        "method": "official_page_review_via_web",
-        "evidence_url": "https://www.ascolour.com.au/men/",
-        "notes": "Australian men's clothing section lists T-shirts, tanks, sweats and pants."
-      },
-      "data_access": {
-        "status": "not_validated",
-        "method": null,
-        "last_checked_on": null,
-        "evidence_url": null
       }
     },
     {
@@ -224,26 +144,6 @@
       }
     },
     {
-      "key": "cottonon_au",
-      "name": "Cotton On Australia",
-      "website_url": "https://cottonon.com/AU/",
-      "menswear_url": "https://cottonon.com/AU/co/men/",
-      "storefront_market": "AU",
-      "website_verification": {
-        "status": "verified",
-        "reviewed_on": "2026-09-23",
-        "method": "official_page_review_via_web",
-        "evidence_url": "https://cottonon.com/AU/co/men/",
-        "notes": "Australian men's shop-all page lists denim, tees, shirts and pants."
-      },
-      "data_access": {
-        "status": "not_validated",
-        "method": null,
-        "last_checked_on": null,
-        "evidence_url": null
-      }
-    },
-    {
       "key": "highsandlows",
       "name": "Highs and Lows",
       "website_url": "https://www.highsandlows.net.au/",
@@ -325,6 +225,1249 @@
         "currency": "AUD",
         "refresh_seconds": 21600,
         "max_pages": 60
+      }
+    },
+    {
+      "key": "maplestore",
+      "name": "Maplestore",
+      "website_url": "https://maplestore.com.au/",
+      "menswear_url": "https://maplestore.com.au/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://maplestore.com.au/collections/mens-clothing",
+        "notes": "Long-running Australian premium menswear/womenswear boutique (Melbourne, since 2003). Shares Carhartt WIP, Norse Projects, Gramicci, Levi's and Beams Plus."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "havn",
+      "name": "HAVN",
+      "website_url": "https://havnstore.com/",
+      "menswear_url": "https://havnstore.com/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://havnstore.com/collections/mens",
+        "notes": "Fitzroy and Torquay (VIC) boutique for technical and designer menswear. Shares Arc'teryx, Gramicci, Norse Projects and Carhartt WIP."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "surfstitch",
+      "name": "SurfStitch",
+      "website_url": "https://surfstitch.com/",
+      "menswear_url": "https://surfstitch.com/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://surfstitch.com/collections/mens-clothing",
+        "notes": "Gold Coast-based online surf and streetwear retailer. Shares Barney Cools (vendor 'B.Cools') and Gramicci."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "ozmosis",
+      "name": "Ozmosis",
+      "website_url": "https://www.ozmosis.com.au/",
+      "menswear_url": "https://www.ozmosis.com.au/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.ozmosis.com.au/collections/mens-clothing",
+        "notes": "Australian surf/street chain. Shares Rusty, Billabong, Afends, Thrills, Abrand, Rolla's, Dickies, Nike and adidas."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "providence",
+      "name": "Providence Clothing Co",
+      "website_url": "https://providenceclothingco.com.au/",
+      "menswear_url": "https://providenceclothingco.com.au/collections/clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://providenceclothingco.com.au/collections/clothing",
+        "notes": "Australian heritage and workwear menswear store. Shares Carhartt WIP, Patagonia and Beams Plus."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "vast-outdoors",
+      "name": "Vast Outdoors",
+      "website_url": "https://vastoutdoors.com.au/",
+      "menswear_url": "https://vastoutdoors.com.au/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://vastoutdoors.com.au/collections/mens-clothing",
+        "notes": "Australian outdoor clothing and gear retailer. Shares Patagonia and Vans, and also stocks Arc'teryx."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "bodhi-surf",
+      "name": "Bodhi Surf",
+      "website_url": "https://bodhisurf.com.au/",
+      "menswear_url": "https://bodhisurf.com.au/collections/mens-surfwear-australia",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://bodhisurf.com.au/collections/mens-surfwear-australia",
+        "notes": "Australian surf shop. Shares Rusty, Billabong and Afends, plus Industrie."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-surfwear-australia",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "skate-connection",
+      "name": "Skate Connection",
+      "website_url": "https://www.skateconnection.com.au/",
+      "menswear_url": "https://www.skateconnection.com.au/collections/apparel",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.skateconnection.com.au/collections/apparel",
+        "notes": "Australian skate shop, and a major Stussy stockist. Shares Rusty, Vans and Nike."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "apparel",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "street-machine",
+      "name": "Street Machine Skateboarding",
+      "website_url": "https://streetmachineskate.com/",
+      "menswear_url": "https://streetmachineskate.com/collections/apparel",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://streetmachineskate.com/collections/apparel",
+        "notes": "Australian skate shop. Shares Nike (SB), Dickies, adidas and Carhartt."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "apparel",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "locality",
+      "name": "Locality Store",
+      "website_url": "https://localitystore.com.au/",
+      "menswear_url": "https://localitystore.com.au/collections/apparel",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://localitystore.com.au/collections/apparel",
+        "notes": "Melbourne skate and streetwear store. Shares Patagonia, New Era, Nike and adidas."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "apparel",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "fifty-fifty",
+      "name": "50-50 Skate Shop",
+      "website_url": "https://50-50.com.au/",
+      "menswear_url": "https://50-50.com.au/collections/clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://50-50.com.au/collections/clothing",
+        "notes": "Australian online skate shop. Shares Vans, Dickies and Nike (SB)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "natural-necessity",
+      "name": "Natural Necessity Surf Shop",
+      "website_url": "https://www.naturalnecessity.com.au/",
+      "menswear_url": "https://www.naturalnecessity.com.au/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.naturalnecessity.com.au/collections/mens-clothing",
+        "notes": "Australian surf shop. Shares Afends, Patagonia, Thrills, Billabong, Rusty, Rolla's, Wrangler and Lee."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "beachin-surf",
+      "name": "Beachin Surf",
+      "website_url": "https://beachinsurf.com.au/",
+      "menswear_url": "https://beachinsurf.com.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://beachinsurf.com.au/collections/mens",
+        "notes": "Toukley (NSW) surf shop. Shares Billabong, Rusty and Afends."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "supply-store",
+      "name": "Supply Store",
+      "website_url": "https://supplystore.com.au/",
+      "menswear_url": "https://supplystore.com.au/collections/frontpage",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://supplystore.com.au/collections/frontpage",
+        "notes": "Sydney streetwear boutique. Shares Stussy, Arc'teryx, Veilance and Vans. The frontpage collection is the whole catalogue and includes some homewares and publications."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "frontpage",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "garments_only": true
+      }
+    },
+    {
+      "key": "thrills",
+      "name": "Thrills",
+      "website_url": "https://thrills.co/",
+      "menswear_url": "https://thrills.co/collections/mens-all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://thrills.co/collections/mens-all",
+        "notes": "Byron Bay vintage-inspired menswear/streetwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Thrills Co.": "Thrills"
+        }
+      }
+    },
+    {
+      "key": "afends",
+      "name": "Afends",
+      "website_url": "https://afends.com/",
+      "menswear_url": "https://afends.com/collections/all-mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://afends.com/collections/all-mens-clothing",
+        "notes": "Byron Bay surf and hemp streetwear label's own store. Also stocked by General Pants."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all-mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "carhartt-wip",
+      "name": "Carhartt WIP Australia",
+      "website_url": "https://carhartt-wip.com.au/",
+      "menswear_url": "https://carhartt-wip.com.au/collections/men",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://carhartt-wip.com.au/collections/men",
+        "notes": "Official Australian Carhartt WIP storefront. Also stocked by Incu and Highs and Lows."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "men",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Carhartt WIP AU": "Carhartt WIP"
+        }
+      }
+    },
+    {
+      "key": "stussy-au",
+      "name": "Stussy Australia",
+      "website_url": "https://stussy.com.au/",
+      "menswear_url": "https://stussy.com.au/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://stussy.com.au/collections/all",
+        "notes": "Official Australian Stussy storefront. Also stocked by General Pants."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Stussy AU": "Stüssy"
+        }
+      }
+    },
+    {
+      "key": "xlarge-au",
+      "name": "XLarge Australia",
+      "website_url": "https://xlarge.com.au/",
+      "menswear_url": "https://xlarge.com.au/collections/full-collection",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://xlarge.com.au/collections/full-collection",
+        "notes": "Official Australian XLarge streetwear storefront. Also stocked by Universal Store and General Pants."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "full-collection",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "X LARGE": "Xlarge"
+        }
+      }
+    },
+    {
+      "key": "levis-au",
+      "name": "Levi's Australia",
+      "website_url": "https://levis.com.au/",
+      "menswear_url": "https://levis.com.au/collections/men",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://levis.com.au/collections/men",
+        "notes": "Official Levi's Australia and New Zealand storefront. Also stocked by Universal Store, Highs and Lows and General Pants."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "men",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Levi AUS/NZ Production": "Levi's"
+        }
+      }
+    },
+    {
+      "key": "status-anxiety",
+      "name": "Status Anxiety",
+      "website_url": "https://www.statusanxiety.com.au/",
+      "menswear_url": "https://www.statusanxiety.com.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.statusanxiety.com.au/collections/mens",
+        "notes": "Australian leather accessories label (wallets, bags, belts, sunglasses). Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "rusty",
+      "name": "Rusty Australia",
+      "website_url": "https://rusty.com.au/",
+      "menswear_url": "https://rusty.com.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://rusty.com.au/collections/mens",
+        "notes": "Australian surf and streetwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Rusty Australia": "Rusty"
+        }
+      }
+    },
+    {
+      "key": "nena-pasadena",
+      "name": "Nena & Pasadena",
+      "website_url": "https://nenaandpasadena.com/",
+      "menswear_url": "https://nenaandpasadena.com/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://nenaandpasadena.com/collections/all",
+        "notes": "Australian menswear streetwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Nena and Pasadena": "Nena & Pasadena",
+          "Nena and Pasadena AFL": "Nena & Pasadena"
+        }
+      }
+    },
+    {
+      "key": "wndrr",
+      "name": "WNDRR",
+      "website_url": "https://www.wndrr.com/",
+      "menswear_url": "https://www.wndrr.com/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.wndrr.com/collections/all",
+        "notes": "Melbourne menswear streetwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "WNDRR": "Wndrr",
+          "CORE": "Wndrr",
+          "INDENT": "Wndrr",
+          "END": "Wndrr",
+          "BUNDLE": "Wndrr",
+          "CLEARANCE": "Wndrr"
+        }
+      }
+    },
+    {
+      "key": "deus-au",
+      "name": "Deus Ex Machina Australia",
+      "website_url": "https://deuscustoms.com.au/",
+      "menswear_url": "https://deuscustoms.com.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://deuscustoms.com.au/collections/mens",
+        "notes": "Sydney moto/surf lifestyle label's Australian store. Also stocked by Universal Store and General Pants."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "dickies-au",
+      "name": "Dickies Australia",
+      "website_url": "https://dickiesaustralia.com/",
+      "menswear_url": "https://dickiesaustralia.com/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://dickiesaustralia.com/collections/mens-clothing",
+        "notes": "Official Dickies Australia and New Zealand storefront. Also stocked by Universal Store and General Pants."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-clothing",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "gramicci-au",
+      "name": "Gramicci Australia",
+      "website_url": "https://gramicci.au/",
+      "menswear_url": "https://gramicci.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://gramicci.au/collections/mens",
+        "notes": "Official Gramicci Australia storefront. Also stocked by Incu, Highs and Lows and Up There."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Grammici Shopify": "Gramicci"
+        }
+      }
+    },
+    {
+      "key": "worship",
+      "name": "Worship Supplies",
+      "website_url": "https://worship-supplies.com/",
+      "menswear_url": "https://worship-supplies.com/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://worship-supplies.com/collections/mens",
+        "notes": "Byron Bay surf, skate and streetwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Worship Supplies": "Worship"
+        }
+      }
+    },
+    {
+      "key": "former",
+      "name": "Former Merchandise Australia",
+      "website_url": "https://formermerchandise.com.au/",
+      "menswear_url": "https://formermerchandise.com.au/collections/shop-all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://formermerchandise.com.au/collections/shop-all",
+        "notes": "Rider-owned surf/skate apparel label's Australian store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "shop-all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "kiss-chacey",
+      "name": "Kiss Chacey",
+      "website_url": "https://kisschacey.com/",
+      "menswear_url": "https://kisschacey.com/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://kisschacey.com/collections/all",
+        "notes": "Australian streetwear label (KSCY) own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "KSCYDOS": "Kiss Chacey",
+          "Kiss Chacey Essentials": "Kiss Chacey"
+        }
+      }
+    },
+    {
+      "key": "barney-cools",
+      "name": "Barney Cools",
+      "website_url": "https://b-cools.com/",
+      "menswear_url": "https://b-cools.com/collections/shop-all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://b-cools.com/collections/shop-all",
+        "notes": "Sydney lifestyle label's AUD store (barneycools.com redirects here). Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "shop-all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "B.Cools": "Barney Cools"
+        }
+      }
+    },
+    {
+      "key": "budgy-smuggler",
+      "name": "Budgy Smuggler",
+      "website_url": "https://budgysmuggler.com.au/",
+      "menswear_url": "https://budgysmuggler.com.au/collections/mens-swimwear-1",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://budgysmuggler.com.au/collections/mens-swimwear-1",
+        "notes": "Australian men's swimwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-swimwear-1",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Budgy Smuggler Australia": "Budgy Smuggler",
+          "Budgy Smuggler AU": "Budgy Smuggler",
+          "NRL": "Budgy Smuggler",
+          "AFL": "Budgy Smuggler",
+          "NFL": "Budgy Smuggler"
+        }
+      }
+    },
+    {
+      "key": "uncut",
+      "name": "Uncut",
+      "website_url": "https://uncutshoes.com.au/",
+      "menswear_url": "https://uncutshoes.com.au/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://uncutshoes.com.au/collections/all",
+        "notes": "Melbourne men's footwear label's own store. Also stocked by Universal Store."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "uncutshoes": "Uncut"
+        }
+      }
+    },
+    {
+      "key": "saturdays-nyc-au",
+      "name": "Saturdays NYC Australia",
+      "website_url": "https://www.saturdaysnyc.com.au/",
+      "menswear_url": "https://www.saturdaysnyc.com.au/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.saturdaysnyc.com.au/collections/all",
+        "notes": "Official Australian Saturdays NYC storefront. Also stocked by Incu."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "commas",
+      "name": "Commas",
+      "website_url": "https://commas.cc/",
+      "menswear_url": "https://commas.cc/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://commas.cc/collections/all",
+        "notes": "Sydney men's resortwear and swim label's own store. Also stocked by Incu."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "ksubi-au",
+      "name": "Ksubi Australia",
+      "website_url": "https://ksubi.com.au/",
+      "menswear_url": "https://ksubi.com.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://ksubi.com.au/collections/mens",
+        "notes": "Official Australian Ksubi denim and streetwear storefront; Australian menswear label (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Ksubi AU": "Ksubi"
+        }
+      }
+    },
+    {
+      "key": "zanerobe",
+      "name": "Zanerobe",
+      "website_url": "https://zanerobe.com/",
+      "menswear_url": "https://zanerobe.com/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://zanerobe.com/collections/all",
+        "notes": "Sydney menswear label's own AUD store; Australian menswear label (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "jac-jack",
+      "name": "Jac + Jack",
+      "website_url": "https://jacandjack.com/",
+      "menswear_url": "https://jacandjack.com/collections/mens-view-all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://jacandjack.com/collections/mens-view-all",
+        "notes": "Australian knitwear and essentials label's own store; Australian menswear label (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens-view-all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "mj-bale",
+      "name": "M.J. Bale",
+      "website_url": "https://www.mjbale.com/",
+      "menswear_url": "https://www.mjbale.com/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.mjbale.com/collections/all",
+        "notes": "Australian menswear and tailoring label's own store; menswear-only (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "M.J.Bale": "M.J. Bale",
+          "MJB": "M.J. Bale"
+        }
+      }
+    },
+    {
+      "key": "mr-simple",
+      "name": "Mr Simple",
+      "website_url": "https://mrsimple.com.au/",
+      "menswear_url": "https://mrsimple.com.au/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://mrsimple.com.au/collections/all",
+        "notes": "Australian menswear label's own store; menswear-only (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "all",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60
+      }
+    },
+    {
+      "key": "p-johnson",
+      "name": "P. Johnson",
+      "website_url": "https://pjt.com/",
+      "menswear_url": "https://pjt.com/collections/shop-all-mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://pjt.com/collections/shop-all-mens",
+        "notes": "Sydney tailoring and menswear label's own store; Australian menswear label (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "shop-all-mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "P Johnson": "P. Johnson"
+        }
+      }
+    },
+    {
+      "key": "nique",
+      "name": "Nique",
+      "website_url": "https://niqueclothing.com.au/",
+      "menswear_url": "https://niqueclothing.com.au/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://niqueclothing.com.au/collections/mens",
+        "notes": "Melbourne minimalist fashion label's own store; Australian menswear label (not currently stocked by our retailers)."
+      },
+      "data_access": {
+        "status": "validated",
+        "method": "shopify_json",
+        "last_checked_on": "2026-09-23",
+        "evidence_url": "docs/live-validation.md"
+      },
+      "ingestion": {
+        "enabled": true,
+        "method": "shopify_json",
+        "collection": "mens",
+        "currency": "AUD",
+        "refresh_seconds": 21600,
+        "max_pages": 60,
+        "vendor_brands": {
+          "Nique Clothing": "Nique"
+        }
       }
     }
   ]

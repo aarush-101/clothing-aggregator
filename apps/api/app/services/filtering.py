@@ -32,8 +32,9 @@ def passes_coarse_filter(product: Product, intent: SearchIntent) -> bool:
     ).lower()
 
     if intent.product_categories:
+        # The stored category was classified from the title at import.
         product_category = canonicalise(product.category or "", CATEGORY_SYNONYMS)
-        title_category = classify_category(product.title or "")
+        title_category = None if product_category else classify_category(product.title or "")
         candidates = {c for c in (product_category, title_category) if c}
         if candidates and not _overlaps(candidates, intent.product_categories):
             return False

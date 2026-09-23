@@ -21,7 +21,6 @@ def product(retailer: str, **overrides) -> Product:
         "brand": "Kessler",
         "retailer": retailer,
         "product_url": f"https://{retailer}.example/p/1",
-        "affiliate_url": f"https://{retailer}.example/p/1",
         "image_url": "https://images.example/kessler-linen-shirt-black.jpg",
         "colours": ["black"],
         "price": Decimal("119.00"),
@@ -213,3 +212,8 @@ def test_singular_and_plural_garment_names_match():
     assert normalise_title("874 Original Work Pants", "Dickies", []) == normalise_title(
         "Dickies 874 Original Work Pant", "Dickies", []
     )
+
+
+def test_brand_accents_and_retailer_abbreviations_normalise():
+    assert normalise_brand("Stüssy") == normalise_brand("STUSSY") == "stussy"
+    assert normalise_brand("B.Cools") == normalise_brand("Barney Cools")

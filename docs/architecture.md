@@ -15,8 +15,10 @@ Source due times and unfinished leases survive process restarts. A crashed
 worker's lease can be reclaimed; its old token cannot publish over a new run.
 
 The adapter fetches robots.txt, honours its matching rules and crawl delays,
-and pages through the configured men's collection with a one-second minimum
-request interval. Requests use the Marle user agent. Cross-host or non-HTTPS
+and pages through the configured men's collection. Requests share one clock
+across every source (`INGESTION_REQUEST_INTERVAL_SECONDS`, default 2 s),
+because Shopify rate-limits a client across all the stores it hosts. A 429 or
+challenge from any store pauses the whole round, not just that store. Requests use the Marle user agent. Cross-host or non-HTTPS
 redirects are rejected. Responses have a size limit and request timeout.
 403/429 responses and access challenges pause the source with a cooldown;
 Retry-After can lengthen it. There is no proxy rotation or challenge solving.

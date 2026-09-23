@@ -25,9 +25,23 @@ search-time connector: searches read the index.
 }
 ```
 
-   Add `"default_brand": "Label"` for an own-label store whose vendor field is
-   a department ("Mens") rather than the brand. Check that robots.txt allows
-   `?page=` URLs: a `Disallow: /*?*` rule blocks pagination.
+   Optional ingestion settings:
+   - `"default_brand": "Label"` for an own-label store whose vendor field is a
+     department ("Mens") or empty.
+   - `"vendor_brands": {"Levi AUS/NZ Production": "Levi's"}` when a brand
+     store uses internal vendor names. Without it, the brand displays oddly
+     and never matches the same label at other retailers, so nothing merges.
+   - `"garments_only": true` for a catch-all collection that also contains
+     homewares or books; unclassifiable products are skipped.
+
+   Check that robots.txt allows the exact `?limit=250&page=1` URL: rules such
+   as `Disallow: /*?*` or `Disallow: /*limit=*` block pagination.
+
+   **Probe gently.** Shopify rate-limits a client IP across *all* stores it
+   hosts. A burst of ~1 request/second across many stores triggered a 429
+   “Verifying your connection” on every Shopify store, including enabled
+   sources, for about 10–15 minutes. Leave several seconds between probe
+   requests, one store at a time.
 
 4. Enable it for a controlled import and run
    `python -m app.ingest --once --retailer RETAILER_KEY --force`. Record a dated
@@ -48,5 +62,6 @@ when it has actually traversed the source scope. Partial feeds must not be fed
 to the current complete-snapshot publisher. Add offline tests for malformed
 records, pagination, variant correctness, failures and removal behaviour.
 
-No generic HTML or affiliate-feed adapter is currently enabled or bundled.
+No generic HTML or feed adapter is bundled. Marle links directly to retailers
+and does not use affiliate links.
 Credentials belong in environment/secrets storage, never the registry.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Optional
 
 from app.logging_config import get_logger
@@ -16,13 +17,18 @@ class IngestionWorker:
     def __init__(self, catalogue: Catalogue):
         self.catalogue = catalogue
         self._task: Optional[asyncio.Task] = None
+        # Set when the platform rate-limits us; no source is tried until then.
+        self.paused_until = 0.0
 
     async def refresh(self, key: str, *, force: bool = False) -> bool:
         token = await self.catalogue.claim(key, force=force)
         if token is None:
             return False
         try:
-            source = ShopifySource(self.catalogue.retailers[key])
+            source = ShopifySource(
+                self.catalogue.retailers[key],
+                request_delay=self.catalogue.settings.ingestion_request_interval_seconds,
+            )
             products = await source.fetch(lambda: self.catalogue.heartbeat(key, token))
             published = await self.catalogue.publish(key, token, products)
             log.info(
@@ -46,11 +52,17 @@ class IngestionWorker:
                 exc.blocked if isinstance(exc, SourceError) else False,
             )
             log.warning("ingestion.failed", retailer=key, error=error)
+            if isinstance(exc, SourceError) and exc.rate_limited:
+                self.paused_until = time.time() + exc.retry_after
+                log.warning("ingestion.paused_all_sources", seconds=exc.retry_after)
             return False
 
     async def tick(self, *, force: bool = False, retailer: Optional[str] = None) -> None:
         keys = [retailer] if retailer else list(self.catalogue.retailers)
         for key in keys:
+            if time.time() < self.paused_until:
+                log.info("ingestion.round_stopped", reason="rate limited", skipped=key)
+                return
             await self.refresh(key, force=force)
 
     async def run(self) -> None:

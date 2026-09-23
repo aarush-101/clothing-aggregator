@@ -57,7 +57,6 @@ async def seed_catalogue(catalogue: Catalogue):
                 retailer=retailer.key,
                 retailer_name=retailer.name,
                 product_url=url,
-                affiliate_url=url,
                 category=category,
                 colours=[colour],
                 materials=[material],

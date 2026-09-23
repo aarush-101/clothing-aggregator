@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, model_validator
@@ -21,6 +21,11 @@ class IngestionConfig(BaseModel):
     max_pages: int = Field(default=30, ge=1, le=100)
     # Own-label stores whose Shopify vendor field is a department, not a brand.
     default_brand: Optional[str] = None
+    # For catch-all collections that include homewares/books: keep only garments.
+    garments_only: bool = False
+    # Brand stores often use internal vendor names ("Levi AUS/NZ Production",
+    # "CORE"); map them, case-insensitively, to the label shoppers know.
+    vendor_brands: Dict[str, str] = Field(default_factory=dict)
 
 
 class Retailer(BaseModel):

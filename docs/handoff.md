@@ -41,6 +41,27 @@ original handoff below (all uncommitted, like the rest):
 - Checks: 240 backend tests, 90 frontend tests, 36 browser tests (8 skips),
   lint/types/build, migration upgrade/downgrade on fresh SQLite.
 
+## Update — third session
+
+- **50 stores**, all Shopify, all imported (206,843 offers, 38,416 listings).
+  Non-Shopify placeholders (THE ICONIC, UNIQLO, Country Road, AS Colour,
+  Cotton On) and Culture Kings were removed from the registry.
+- **No affiliate links:** the affiliate URL builder, settings, `affiliate_url`
+  field and "sponsored" link rel were removed. Cards link to `product_url`.
+- **Rate limits:** Shopify limits per client IP across all its stores. One
+  shared request clock (`INGESTION_REQUEST_INTERVAL_SECONDS`, 2 s) and a
+  round-wide pause on any 429/challenge (`IngestionWorker.paused_until`).
+- **Source options:** `vendor_brands` (map internal vendor names to labels),
+  `garments_only` (skip non-clothing in catch-all collections); vendor names are
+  also checked for women's lines.
+- **Brands:** accents/abbreviations normalise ("Stüssy", "B.Cools"); each label
+  displays with one spelling across stores ("Levi's", not "LEVIS").
+- **Speed:** cached/combined category regex and cheaper text sanitising;
+  broad searches ~0.7–1.2 s at 50 stores.
+- **UI:** retailer coverage collapses to the top 8 after a search.
+- 696 products merge across stores. Checks: 236 backend, 91 frontend, 36 browser
+  tests (8 skips), lint/types/build.
+
 ## What works now (original handoff)
 
 ```text

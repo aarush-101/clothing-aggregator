@@ -135,7 +135,6 @@ def test_sse_products_have_everything_the_ui_needs(api_client):
         "retailer",
         "retailer_name",
         "product_url",
-        "affiliate_url",
         "image_url",
         "price",
         "currency",
@@ -187,7 +186,7 @@ def test_retailers_endpoint_lists_reviewed_websites(api_client):
     assert retailers
     keys = {retailer["key"] for retailer in retailers}
     assert "assemblylabel" in keys
-    assert sum(r["enabled"] for r in retailers) == 8
+    assert sum(r["enabled"] for r in retailers) >= 8
     assert all(retailer["requires_permission"] is False for retailer in retailers)
 
 

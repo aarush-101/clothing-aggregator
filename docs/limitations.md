@@ -3,10 +3,11 @@
 The initial implementation searches real, stored retailer inventory. Its
 coverage and operational limits remain explicit.
 
-- **Eight sources:** Assembly Label, Academy Brand, Industrie, Universal Store,
-  Incu, Highs and Lows, Up There and General Pants Co. THE ICONIC, UNIQLO, Country Road, AS Colour and Cotton On
-  have no adapter (they are not Shopify stores; affiliate product feeds are the
-  realistic route). There is no automatic search across the whole internet.
+- **50 Australian Shopify stores** (see the registry). Only public Shopify
+  collection JSON is supported, so non-Shopify retailers (THE ICONIC, UNIQLO,
+  Country Road, Rolla's, Wrangler) are not covered. Stores whose robots rules
+  block paginated collection URLs (Culture Kings, Surf Dive 'n' Ski) are excluded. Marle does not use affiliate links or feeds.
+  There is no automatic search across the whole internet.
 - **Observed availability:** imports are periodic. Retailer checkout is the
   authority for current prices, stock and shipping. An AU storefront does not
   establish delivery to every destination. Shipping costs remain unknown.
@@ -27,14 +28,18 @@ coverage and operational limits remain explicit.
   the same colourway (or a shared image filename). There are no barcodes in the
   public Shopify data, so stores that name a product differently (“Levi's 568
   Loose Straight Jean The Midnight Blues Show” vs “568 Loose Straight Jeans”)
-  are not merged. Only 52 of ~9,400 in-stock colourways currently merge.
-  Barcode (GTIN) data from affiliate feeds would be the reliable fix.
+  are not merged. 696 of ~31,500 in-stock colourways currently merge.
+  Marle does not use affiliate links or feeds, so matching relies on names.
 - **Brand recognition** uses the brands present in the index. A brand whose
   name is also a garment/colour/material word is not recognised from a prompt.
 - **Scale:** SQLite is for local/small deployments. PostgreSQL migration support
   exists; a hosted PostgreSQL deployment and high-concurrency load have not been
   benchmarked. SQL filters narrow candidates; relevance and grouping still run
-  in Python, so very broad prompts (“jeans”) take up to ~0.8 s locally.
+  in Python, so very broad prompts take up to ~1.2 s locally. Keyword-only
+  prompts scan `search_text` with `LIKE`; full-text indexing would help at scale.
+- **Shopify rate limits** apply per client IP across all Shopify stores. One
+  429/challenge pauses the whole import round. With 50 stores a full refresh
+  takes roughly 20–30 minutes at the 2 s default spacing.
 - **Streaming:** the event broker is in-process. Multi-instance deployments need
   session affinity; Redis does not yet carry live events between API instances.
 - **Operations:** there is no admin UI, metrics dashboard, automated access

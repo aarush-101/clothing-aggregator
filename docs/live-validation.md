@@ -1,5 +1,100 @@
 # Live source validation — 2026-09-23
 
+## Third import: 50 stores
+
+Two research passes found Australian Shopify stores that overlap our brands:
+14 multi-brand retailers and 28 brand-direct or label stores. Each passed the
+same checks (canonical HTTPS root, `/meta.json` AUD, Protego allowing the exact
+`?limit=250&page=1` URL, page-1 JSON with variant price/availability, an empty
+final page within 60 pages, same-host product page). THE ICONIC, UNIQLO,
+Country Road, AS Colour and Cotton On were removed from the registry: they are
+not Shopify stores and Marle does not use affiliate feeds.
+
+**Platform-wide rate limit.** Both research passes triggered HTTP 429
+“Verifying your connection” from *every* Shopify store (including enabled
+sources) after bursts of roughly one request per second across many hosts. It
+cleared after 10–15 minutes. The importer now shares one request clock across
+all sources (2 s default) and stops the round on any 429/challenge. The full
+50-store import then ran with the API's background worker and completed with
+no 429s.
+
+| Retailer | Type | Collection | Offers | In stock | Listings |
+| --- | --- | --- | ---: | ---: | ---: |
+| Academy Brand | Brand / label store | `mens` | 2,561 | 2,058 | 419 |
+| Afends | Brand / label store | `all-mens-clothing` | 1,755 | 1,462 | 329 |
+| Assembly Label | Brand / label store | `mens-shop-all` | 812 | 642 | 136 |
+| Barney Cools | Brand / label store | `shop-all` | 391 | 271 | 71 |
+| Budgy Smuggler | Brand / label store | `mens-swimwear-1` | 1,320 | 1,059 | 183 |
+| Carhartt WIP Australia | Brand / label store | `men` | 4,238 | 3,382 | 653 |
+| Commas | Brand / label store | `all` | 1,201 | 354 | 216 |
+| Deus Ex Machina Australia | Brand / label store | `mens` | 4,915 | 2,704 | 860 |
+| Dickies Australia | Brand / label store | `mens-clothing` | 1,532 | 1,064 | 209 |
+| Former Merchandise Australia | Brand / label store | `shop-all` | 1,022 | 776 | 211 |
+| Gramicci Australia | Brand / label store | `mens` | 1,632 | 975 | 400 |
+| Industrie | Brand / label store | `all` | 9,879 | 7,105 | 1,635 |
+| Jac + Jack | Brand / label store | `mens-view-all` | 300 | 224 | 50 |
+| Kiss Chacey | Brand / label store | `all` | 8,722 | 1,952 | 1,453 |
+| Ksubi Australia | Brand / label store | `mens` | 2,529 | 1,907 | 316 |
+| Levi's Australia | Brand / label store | `men` | 3,991 | 2,387 | 322 |
+| M.J. Bale | Brand / label store | `all` | 13,052 | 10,736 | 2,175 |
+| Mr Simple | Brand / label store | `all` | 1,366 | 871 | 217 |
+| Nena & Pasadena | Brand / label store | `all` | 10,541 | 2,659 | 1,724 |
+| Nique | Brand / label store | `mens` | 285 | 201 | 55 |
+| P. Johnson | Brand / label store | `shop-all-mens` | 1,060 | 935 | 300 |
+| Rusty Australia | Brand / label store | `mens` | 2,004 | 965 | 187 |
+| Saturdays NYC Australia | Brand / label store | `all` | 1,214 | 1,020 | 361 |
+| Status Anxiety | Brand / label store | `mens` | 21 | 21 | 21 |
+| Stussy Australia | Brand / label store | `all` | 2,584 | 1,811 | 772 |
+| Thrills | Brand / label store | `mens-all` | 2,690 | 1,664 | 401 |
+| Uncut | Brand / label store | `all` | 565 | 360 | 89 |
+| WNDRR | Brand / label store | `all` | 2,580 | 1,960 | 390 |
+| Worship Supplies | Brand / label store | `mens` | 881 | 540 | 126 |
+| XLarge Australia | Brand / label store | `full-collection` | 2,327 | 1,188 | 330 |
+| Zanerobe | Brand / label store | `all` | 15,001 | 1,025 | 2,551 |
+| 50-50 Skate Shop | Multi-brand | `clothing` | 3,948 | 1,640 | 1,253 |
+| Beachin Surf | Multi-brand | `mens` | 4,713 | 1,333 | 439 |
+| Bodhi Surf | Multi-brand | `mens-surfwear-australia` | 2,166 | 1,323 | 437 |
+| General Pants Co. | Multi-brand | `mens-clothing` | 10,709 | 6,139 | 1,904 |
+| HAVN | Multi-brand | `mens` | 3,613 | 2,230 | 875 |
+| Highs and Lows | Multi-brand | `mens-clothing` | 1,655 | 978 | 403 |
+| Incu | Multi-brand | `mens-clothing` | 7,207 | 5,109 | 1,688 |
+| Locality Store | Multi-brand | `apparel` | 4,063 | 725 | 1,227 |
+| Maplestore | Multi-brand | `mens-clothing` | 4,395 | 2,803 | 875 |
+| Natural Necessity Surf Shop | Multi-brand | `mens-clothing` | 1,768 | 389 | 115 |
+| Ozmosis | Multi-brand | `mens-clothing` | 2,432 | 1,825 | 453 |
+| Providence Clothing Co | Multi-brand | `clothing` | 3,707 | 1,561 | 587 |
+| Skate Connection | Multi-brand | `apparel` | 2,689 | 1,553 | 676 |
+| Street Machine Skateboarding | Multi-brand | `apparel` | 746 | 288 | 128 |
+| Supply Store | Multi-brand | `frontpage` | 7,654 | 4,443 | 2,041 |
+| SurfStitch | Multi-brand | `mens-clothing` | 16,747 | 15,569 | 3,299 |
+| Universal Store | Multi-brand | `mens` | 16,958 | 10,667 | 2,811 |
+| Up There | Multi-brand | `clothing` | 6,934 | 2,799 | 1,697 |
+| Vast Outdoors | Multi-brand | `mens-clothing` | 1,768 | 1,467 | 346 |
+| **Total (50)** | | | **206,843** | **117,119** | **38,416** |
+
+Status Anxiety's collection is mostly items tagged for women or unclassified
+accessories, so few offers remain after filtering.
+
+**Matching.** Across 31,469 in-stock colourways, 696 groups merge offers from
+more than one store (previously 52). A random sample of 15 were all the same
+garment, e.g. Carhartt WIP “Brandon Pant” at HAVN, Incu, Carhartt WIP AU and
+Supply Store (AUD 240–259.95); Thrills “Visions Jacob Pant - Black” at Thrills
+and Universal Store; Rusty “Flip Daddy Reversible Webbing Belt” at Rusty and
+Bodhi Surf. Brand stores' internal vendor names (“Levi AUS/NZ Production”,
+“Grammici Shopify”) are mapped per source with `vendor_brands`.
+
+**Speed** (in-process, parse excluded; SQL query + grouping/ranking):
+
+| Prompt | Groups | Query | Rank |
+| --- | ---: | ---: | ---: |
+| black linen shirt under $120 | 12 | 56 ms | 2 ms |
+| carhartt jacket | 85 | 35 ms | 16 ms |
+| norse projects | 208 | 54 ms | 33 ms |
+| swim shorts | 926 | 247 ms | 136 ms |
+| hoodie | 1,856 | 473 ms | 270 ms |
+| summer wedding outfit | 1,256 | 955 ms | 224 ms |
+
+
 ## Second import: eight sources, cross-retailer matching
 
 Later the same day, four multi-brand Shopify stores were checked for brand

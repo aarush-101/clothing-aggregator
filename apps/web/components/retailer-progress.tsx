@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { AlertCircle, Check, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -41,6 +42,8 @@ function stateLabel(retailer: RetailerStatus): string {
   }
 }
 
+const COLLAPSED_COUNT = 8;
+
 export function RetailerProgress({
   retailers,
   isLoading,
@@ -48,7 +51,20 @@ export function RetailerProgress({
   retailers: RetailerStatus[];
   isLoading: boolean;
 }) {
+  const [expanded, setExpanded] = React.useState(false);
   if (retailers.length === 0) return null;
+
+  // With many sources, a finished search shows the retailers with the most
+  // matches (and any problems) first and folds the rest away.
+  const ordered = isLoading
+    ? retailers
+    : [...retailers].sort(
+        (a, b) =>
+          Number(b.state === 'failed') - Number(a.state === 'failed') ||
+          b.product_count - a.product_count,
+      );
+  const collapsible = !isLoading && retailers.length > COLLAPSED_COUNT;
+  const visible = collapsible && !expanded ? ordered.slice(0, COLLAPSED_COUNT) : ordered;
 
   const done = retailers.filter(
     (r) => r.state === 'completed' || r.state === 'failed' || r.state === 'skipped',
@@ -73,7 +89,7 @@ export function RetailerProgress({
         aria-live="polite"
         aria-busy={isLoading}
       >
-        {retailers.map((retailer) => (
+        {visible.map((retailer) => (
           <li
             key={retailer.key}
             className="flex min-w-0 items-center justify-between gap-3 text-sm"
@@ -110,6 +126,16 @@ export function RetailerProgress({
           </li>
         ))}
       </ul>
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-3 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Show fewer retailers' : `Show all ${retailers.length} retailers`}
+        </button>
+      ) : null}
     </section>
   );
 }

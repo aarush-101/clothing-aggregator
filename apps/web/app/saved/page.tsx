@@ -87,12 +87,12 @@ export default function SavedPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    {favourite.product?.affiliate_url ? (
+                    {favourite.product?.product_url ? (
                       <Button variant="ghost" size="sm" asChild>
                         <a
-                          href={favourite.product.affiliate_url}
+                          href={favourite.product.product_url}
                           target="_blank"
-                          rel="noopener noreferrer nofollow sponsored"
+                          rel="noopener noreferrer nofollow"
                         >
                           View
                           <ArrowUpRight className="size-3.5" aria-hidden="true" />

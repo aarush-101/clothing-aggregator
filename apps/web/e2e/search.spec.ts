@@ -70,7 +70,7 @@ test.describe('search results', () => {
     await expect(link).toHaveAttribute('href', /^https:\/\//);
     const rel = await link.getAttribute('rel');
     expect(rel).toContain('noopener');
-    expect(rel).toContain('sponsored');
+    expect(rel).not.toContain('sponsored');
   });
 
   test('reports partial results when a retailer fails', async ({ page }) => {

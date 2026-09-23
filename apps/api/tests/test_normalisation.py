@@ -17,7 +17,6 @@ def make_product(**overrides) -> Product:
         "title": "Linen Shirt",
         "retailer": "demo",
         "product_url": "https://shop.example/p/1",
-        "affiliate_url": "https://shop.example/p/1",
         "price": Decimal("119.00"),
     }
     fields.update(overrides)

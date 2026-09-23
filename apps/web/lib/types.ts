@@ -37,7 +37,6 @@ export interface Product {
   retailer: string;
   retailer_name: string | null;
   product_url: string;
-  affiliate_url: string;
   image_url: string | null;
   category: string | null;
   colours: string[];

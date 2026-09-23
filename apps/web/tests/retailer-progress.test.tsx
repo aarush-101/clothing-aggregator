@@ -4,7 +4,7 @@ import { PartialResultsNotice } from '@/components/result-states';
 import { RetailerProgress } from '@/components/retailer-progress';
 import type { RetailerStatus } from '@/lib/types';
 
-import { render, screen } from './render';
+import { fireEvent, render, screen } from './render';
 
 function status(overrides: Partial<RetailerStatus> = {}): RetailerStatus {
   return {
@@ -39,6 +39,23 @@ describe('RetailerProgress', () => {
     expect(screen.getByText('Harbour & Hale')).toBeInTheDocument();
     expect(screen.getByText('Searching catalogue…')).toBeInTheDocument();
     expect(screen.getByText('Queued')).toBeInTheDocument();
+  });
+
+  it('folds a long finished list, leading with the retailers that matched', () => {
+    const retailers = Array.from({ length: 12 }, (_, index) =>
+      status({
+        key: `r${index}`,
+        name: `Retailer ${index}`,
+        state: 'completed',
+        product_count: index === 11 ? 9 : 0,
+      }),
+    );
+    render(<RetailerProgress retailers={retailers} isLoading={false} />);
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(8);
+    expect(items[0]).toHaveTextContent('Retailer 11');
+    fireEvent.click(screen.getByRole('button', { name: 'Show all 12 retailers' }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(12);
   });
 
   it('reports match counts once a retailer completes', () => {

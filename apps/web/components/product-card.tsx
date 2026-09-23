@@ -50,7 +50,7 @@ export function ProductCard({
       recordClick({
         retailer: offer.retailer,
         product_id: offer.product_id,
-        destination_url: offer.affiliate_url,
+        destination_url: offer.product_url,
         search_id: searchId ?? undefined,
         price: offer.price,
         currency: offer.currency,
@@ -159,9 +159,9 @@ export function ProductCard({
                 {alternatives.slice(0, 3).map((offer) => (
                   <li key={`${offer.retailer}-${offer.product_id}`}>
                     <a
-                      href={offer.affiliate_url}
+                      href={offer.product_url}
                       target="_blank"
-                      rel="noopener noreferrer nofollow sponsored"
+                      rel="noopener noreferrer nofollow"
                       onClick={() => recordOutbound(offer)}
                       className="flex items-center justify-between gap-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
@@ -190,9 +190,9 @@ export function ProductCard({
 
           <Button asChild variant="outline" size="sm" className="w-full">
             <a
-              href={product.affiliate_url}
+              href={product.product_url}
               target="_blank"
-              rel="noopener noreferrer nofollow sponsored"
+              rel="noopener noreferrer nofollow"
               onClick={handleOutboundClick}
               data-testid="view-at-retailer"
             >

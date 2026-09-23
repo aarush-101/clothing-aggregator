@@ -2,21 +2,22 @@
 
 Marle turns a clothing prompt into filters, searches a persistent product
 catalogue, merges the same garment sold by different retailers into one card
-with each retailer's price, and links shoppers to the original retailers. It
-collects real menswear from **Assembly Label, Academy Brand, Industrie,
-Universal Store, Incu, Highs and Lows, Up There and General Pants Co.**, without
-an eBay account or shopping API key.
+with each retailer's price, and links shoppers straight to the original retailers (no affiliate links). It
+collects real menswear from **50 Australian Shopify stores**: 19 multi-brand
+retailers (Universal Store, Incu, General Pants, SurfStitch, Maplestore, Up
+There, Supply Store…) and 31 brand or label stores (Carhartt WIP, Stüssy,
+Levi's, Thrills, Deus, Industrie, M.J. Bale…), without any account or API key.
 
 **Status: working initial implementation with limited retailer coverage.**
-Thirteen websites are reviewed in the registry; eight have enabled, tested
-imports. The rest are listed but unconfigured. This does not search every
-retailer on the internet or guarantee current stock and delivery at checkout.
+Every store in the registry has a tested, enabled import. This does not search
+every retailer on the internet or guarantee current stock and delivery at
+checkout.
 
-A live import on 2026-09-23 stored **56,715 size/colour offers** (35,497 in
-stock) for **10,693 distinct listings** across the eight sources. The multi-brand
-stores were chosen because they stock the same brands (Carhartt WIP, Norse
-Projects, Gramicci, Levi's, Dickies, Nike…), so the same garment can appear at
-several retailers and be merged. See the
+A live import on 2026-09-23 stored **206,843 size/colour offers** (117,119 in
+stock) for **38,416 distinct listings**. Stores were chosen for overlapping
+brands, so the same garment appears at several places (a brand's own store and
+its stockists) and is merged: **696 products** currently show prices from more
+than one store. See the
 [live validation report](docs/live-validation.md) for evidence and limits.
 
 ## Run locally
@@ -67,7 +68,8 @@ Purchase:   result card → original retailer's product/variant page
   outages while unexpired inventory remains. Snapshots and reconnects recheck
   the index so removed or expired offers cannot reappear from a response cache.
 - Filter columns (category, price, size, stock, brand, search text) let SQL
-  narrow offers before ranking; typical searches take 5–750 ms locally.
+  narrow offers before ranking; most searches take under 150 ms locally and the
+  broadest (“hoodie”, “summer wedding outfit”) about 0.7–1.2 s.
 - Brand names in a prompt are recognised from the indexed brands, in any case
   (“levis 501 jeans”, “no nike”), and filter results.
 - The same garment from different retailers is merged using brand, a
@@ -123,6 +125,5 @@ are not run by CI.
 | [Adding a source](docs/adding-a-source.md) | Integrating a reviewed retailer |
 | [Live validation](docs/live-validation.md) | Observed import/search results |
 | [Access research](docs/real-retailer-data.md) | Historical findings and current source choices |
-| [Affiliate links](docs/affiliate-networks.md) | Optional link attribution |
 | [Deployment](docs/deployment.md) | Local SQLite, PostgreSQL, workers and hosting |
 | [Limitations](docs/limitations.md) | Coverage, freshness and operational limits |

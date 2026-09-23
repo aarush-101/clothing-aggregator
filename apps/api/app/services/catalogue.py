@@ -8,7 +8,7 @@ import uuid
 from datetime import timedelta
 from typing import Dict, List, Optional
 
-from sqlalchemy import delete, distinct, insert, not_, or_, select, update
+from sqlalchemy import delete, func, insert, not_, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.config import Settings
@@ -16,8 +16,7 @@ from app.db.session import Database
 from app.db.tables import CatalogueOffer, CatalogueSource, IngestionRun
 from app.models.intent import SearchIntent
 from app.models.product import Product, utcnow
-from app.services.affiliate import build_affiliate_url
-from app.services.dedupe import normalise_brand
+from app.services.dedupe import normalise_brand, spelling_key
 from app.services.filtering import passes_coarse_filter
 from app.services.nlp.lexicon import (
     CATEGORY_SYNONYMS,
@@ -88,6 +87,7 @@ class Catalogue:
         self.retailers = {r.key: r for r in retailers}
         self.settings = settings
         self._brands: Dict[str, List[str]] = {}
+        self._brand_display: Dict[str, str] = {}
         self._brands_loaded = 0.0
 
     async def initialise(self) -> None:
@@ -294,6 +294,7 @@ class Catalogue:
             clause = _any_term({part for kw in keywords for part in kw.split()})
             if clause is not None:
                 statement = statement.where(clause)
+        await self._brand_vocabulary()  # refreshes display spellings (cached)
         matches: Dict[tuple, List[Product]] = {}
         async with self.database.session() as session:
             for raw in await session.scalars(statement):
@@ -324,13 +325,11 @@ class Catalogue:
                     for size in p.available_sizes
                 }
             )
-            primary.affiliate_url = build_affiliate_url(
-                product_url=primary.product_url,
-                retailer=primary.retailer,
-                product_id=primary.product_id,
-                templates=self.settings.affiliate_template_map,
-                subid_prefix=self.settings.affiliate_subid_prefix,
-            )
+            if primary.brand:
+                # One spelling per label across stores: "LEVIS" and "Levis" show as "Levi's".
+                primary.brand = self._brand_display.get(
+                    normalise_brand(primary.brand), primary.brand
+                )
             products.append(primary)
         return products
 
@@ -338,17 +337,25 @@ class Catalogue:
         """Normalised brand -> stored spellings, from the brands actually indexed."""
         if time.time() - self._brands_loaded > BRAND_CACHE_SECONDS:
             async with self.database.session() as session:
-                names = await session.scalars(
-                    select(distinct(CatalogueOffer.brand)).where(
+                rows = await session.execute(
+                    select(CatalogueOffer.brand, func.count())
+                    .where(
                         CatalogueOffer.source_key.in_(self.retailers),
                         CatalogueOffer.brand.is_not(None),
                     )
+                    .group_by(CatalogueOffer.brand)
                 )
                 vocabulary: Dict[str, List[str]] = {}
-                for name in names:
+                counts: Dict[str, int] = {}
+                for name, count in rows:
                     key = normalise_brand(name)
                     if key:
                         vocabulary.setdefault(key, []).append(name)
+                        counts[name] = count
+            self._brand_display = {
+                key: min(names, key=lambda n, k=key: _display_rank(n, k, counts[n]))
+                for key, names in vocabulary.items()
+            }
             self._brands, self._brands_loaded = vocabulary, time.time()
         return self._brands
 
@@ -368,8 +375,7 @@ class Catalogue:
             if start < 0 or any(a <= start + 1 < b for a, b in taken):
                 continue
             taken.append((start + 1, start + 1 + len(alias)))
-            # Prefer "Levi's" over "LEVIS" for display.
-            name = sorted(vocabulary[key], key=lambda n: (n.isupper() or n.islower(), len(n)))[0]
+            name = self._brand_display.get(key, vocabulary[key][0])
             target = excluded if _NEGATED.search(text[:start]) else preferred
             if not any(normalise_brand(b) == key for b in preferred + excluded):
                 target.append(name)
@@ -378,8 +384,6 @@ class Catalogue:
         return intent.model_copy(update={"brands": preferred, "excluded_brands": excluded})
 
     async def active_offer_count(self) -> int:
-        from sqlalchemy import func
-
         async with self.database.session() as session:
             return (
                 await session.scalar(
@@ -433,6 +437,18 @@ def _brand_aliases(vocabulary: Dict[str, List[str]]) -> Dict[str, str]:
         if first not in aliases and len(keys) == 1:
             aliases[first] = next(iter(keys))
     return aliases
+
+
+def _display_rank(name: str, key: str, count: int) -> tuple:
+    """Order spellings of one label: its own name over a retailer abbreviation
+    ("Barney Cools" over "B.Cools"), mixed case over capitals, punctuation and
+    accents kept ("Levi's", "Stüssy"), then the most common."""
+    return (
+        spelling_key(name) != key,
+        name.isupper() or name.islower(),
+        name.isascii() and name.replace(" ", "").isalnum(),
+        -count,
+    )
 
 
 def _brand_names(vocabulary: Dict[str, List[str]], wanted: List[str]) -> List[str]:

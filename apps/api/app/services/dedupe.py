@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from typing import Dict, List, Optional, Tuple
 
 from app.models.product import Product, ProductGroup
@@ -64,13 +65,24 @@ _SLEEVES = (
 )
 
 
-def normalise_brand(brand: Optional[str]) -> str:
+# Retailers' own abbreviations for a label, after normalisation.
+_BRAND_ALIASES = {"b cools": "barney cools"}
+
+
+def spelling_key(brand: Optional[str]) -> str:
+    """Brand reduced to letters and words, before retailer abbreviations are expanded."""
     if not brand:
         return ""
-    # "Levi's" and "Levis" are the same label.
-    text = _PUNCT.sub(" ", brand.lower().replace("'", "").replace("\u2019", ""))
-    text = _LEGAL_SUFFIX.sub(" ", text)
-    return _WS.sub(" ", text).strip()
+    # "Stüssy"/"Stussy" and "Levi's"/"Levis" are the same label.
+    text = unicodedata.normalize("NFKD", brand.lower())
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = _PUNCT.sub(" ", text.replace("'", "").replace("\u2019", ""))
+    return _WS.sub(" ", _LEGAL_SUFFIX.sub(" ", text)).strip()
+
+
+def normalise_brand(brand: Optional[str]) -> str:
+    text = spelling_key(brand)
+    return _BRAND_ALIASES.get(text, text)
 
 
 def normalise_title(title: str, brand: Optional[str], colours: List[str]) -> str:

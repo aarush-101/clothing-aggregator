@@ -187,3 +187,40 @@ def test_brand_aliases_cover_short_forms_without_generic_words():
     assert aliases["north face"] == "the north face"
     assert "clothing" not in aliases
     assert aliases["nike"] == "nike"
+
+
+async def test_platform_rate_limit_stops_the_round_for_every_source(
+    settings, tmp_path, monkeypatch
+):
+    from app.services.ingestion import IngestionWorker
+    from app.sources.registry import enabled_retailers
+    from app.sources.shopify import ShopifySource, SourceError
+
+    database = Database(f"sqlite+aiosqlite:///{tmp_path / 'paused.sqlite3'}")
+    await database.create_all()
+    catalogue = Catalogue(database, enabled_retailers()[:3], settings)
+    await catalogue.initialise()
+    attempts = []
+
+    async def rate_limited(self, heartbeat=None):
+        attempts.append(self.retailer.key)
+        raise SourceError("HTTP 429", retry_after=3600, blocked=True, rate_limited=True)
+
+    monkeypatch.setattr(ShopifySource, "fetch", rate_limited)
+    worker = IngestionWorker(catalogue)
+    await worker.tick(force=True)
+    # The first 429 pauses everything; other stores share the same platform limit.
+    assert len(attempts) == 1 and worker.paused_until > time.time()
+    await database.dispose()
+
+
+def test_one_display_spelling_per_label():
+    from app.services.catalogue import _display_rank
+
+    def best(key, counts):
+        return min(counts, key=lambda n: _display_rank(n, key, counts[n]))
+
+    assert best("levis", {"LEVIS": 900, "Levis": 500, "Levi's": 300}) == "Levi's"
+    assert best("barney cools", {"B.Cools": 800, "Barney Cools": 100}) == "Barney Cools"
+    assert best("carhartt wip", {"Carhartt WIP": 900, "Carhartt Wip": 50}) == "Carhartt WIP"
+    assert best("stussy", {"Stussy": 400, "Stüssy": 300, "STUSSY": 50}) == "Stüssy"

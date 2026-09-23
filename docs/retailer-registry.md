@@ -5,10 +5,11 @@ The maintained list lives in
 It gives source research and running ingestion a shared list of retailers,
 official menswear URLs and dated evidence.
 
-The initial ten entries were reviewed on **2026-09-23**: THE ICONIC, UNIQLO
-Australia, Country Road, Assembly Label, AS Colour Australia, Universal Store,
-Industrie, Incu, Academy Brand and Cotton On Australia. Each entry links to the
-official page used for its review.
+The registry holds **50 Australian Shopify stores**, all reviewed and enabled
+on **2026-09-23**: 19 multi-brand retailers and 31 brand or label stores. Stores
+without a working import (non-Shopify sites, robots-blocked pagination) were
+removed rather than kept as placeholders. Each entry links to the official page
+used for its review.
 
 ## What verified means
 
@@ -17,16 +18,14 @@ retailer website with a menswear section. The initial reviews used web browsing,
 which may return cached page content. They were not live access benchmarks
 from Marle's backend.
 
-Three multi-brand stores were added the same day: Highs and Lows, Up There
-and General Pants Co., chosen for brand overlap with existing
-sources so duplicates can be merged.
+Stores were chosen for brand overlap, so the same garment appears at more than
+one store and can be merged.
 
-`data_access.status` is tracked separately. Assembly Label, Academy Brand,
-Industrie, Universal Store, Incu, Highs and Lows, Up There and General Pants Co.
-have validated public collection imports, with evidence in
-[the live report](live-validation.md). Culture Kings was checked but removed
-because its robots rules disallow paginated collection requests. The other five remain
-`not_validated` and have no enabled ingestion configuration.
+`data_access.status` is tracked separately; every entry currently has a
+validated public collection import, with evidence in
+[the live report](live-validation.md). Culture Kings and Surf Dive 'n' Ski were
+checked but not added because their robots rules disallow paginated collection
+requests.
 
 Website verification alone does not establish product access or current stock.
 `storefront_market = AU` describes the storefront, not shipping eligibility.

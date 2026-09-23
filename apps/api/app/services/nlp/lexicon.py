@@ -8,6 +8,7 @@ title.
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 # --------------------------------------------------------------------------
@@ -482,18 +483,30 @@ def find_terms(text: str, table: Dict[str, Set[str]]) -> List[str]:
     return found
 
 
+_COMBINED: Dict[int, Tuple[re.Pattern, Dict[str, str]]] = {}
+
+
 def _alias_matches(text: str, table: Dict[str, Set[str]]) -> List[Tuple[int, int, str]]:
-    matches = []
-    for canonical, aliases in table.items():
-        for alias in {canonical, *aliases}:
-            for match in _pattern_for(alias).finditer(text):
-                matches.append((match.start(), match.end(), canonical))
-    # A match inside a longer one ("shorts" in "swim shorts") is not separate.
-    return [
-        m
-        for m in matches
-        if not any(o[0] <= m[0] and m[1] <= o[1] and (o[1] - o[0]) > (m[1] - m[0]) for o in matches)
-    ]
+    """(start, end, canonical) for each alias in ``text``.
+
+    One alternation, longest alias first, so at any position the longest name
+    wins and words inside it ("shorts" in "swim shorts") are not separate hits.
+    """
+    compiled = _COMBINED.get(id(table))
+    if compiled is None:
+        lookup = {
+            alias.lower(): canonical
+            for canonical, aliases in table.items()
+            for alias in {canonical, *aliases}
+        }
+        alternation = "|".join(re.escape(alias) for alias in sorted(lookup, key=len, reverse=True))
+        compiled = (
+            re.compile(r"(?<![\w-])(?:" + alternation + r")(?![\w-])", re.IGNORECASE),
+            lookup,
+        )
+        _COMBINED[id(table)] = compiled
+    pattern, lookup = compiled
+    return [(m.start(), m.end(), lookup[m.group(0).lower()]) for m in pattern.finditer(text)]
 
 
 def find_categories(text: str) -> List[str]:
@@ -505,6 +518,7 @@ def find_categories(text: str) -> List[str]:
     return found
 
 
+@lru_cache(maxsize=65536)
 def classify_category(text: str) -> Optional[str]:
     """The garment a product title describes.
 

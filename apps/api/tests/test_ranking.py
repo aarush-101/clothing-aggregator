@@ -26,7 +26,6 @@ def product(**overrides) -> Product:
         "brand": "Kessler",
         "retailer": overrides.pop("retailer", "demo"),
         "product_url": "https://shop.example/p/1",
-        "affiliate_url": "https://shop.example/p/1",
         "category": "shirt",
         "colours": ["black"],
         "materials": ["linen"],

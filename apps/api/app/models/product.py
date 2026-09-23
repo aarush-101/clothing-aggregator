@@ -13,6 +13,8 @@ _SAFE_SCHEMES = ("http://", "https://")
 _WHITESPACE = re.compile(r"\s+")
 _HTML_TAG = re.compile(r"<[^>]+>")
 _MAX_TEXT = 2000
+# Control characters other than tab and newline.
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b-\x1f]")
 
 
 def utcnow() -> datetime:
@@ -29,7 +31,7 @@ def sanitise_text(value: Any, limit: int = _MAX_TEXT) -> Optional[str]:
         return None
     text = _HTML_TAG.sub(" ", str(value))
     text = text.replace("\u0000", " ")
-    text = "".join(ch for ch in text if ch == "\n" or ch == "\t" or ord(ch) >= 32)
+    text = _CONTROL_CHARS.sub("", text)
     text = _WHITESPACE.sub(" ", text).strip()
     return text[:limit] or None
 
@@ -82,7 +84,6 @@ class Product(BaseModel):
     retailer: str
     retailer_name: Optional[str] = None
     product_url: str
-    affiliate_url: str
     image_url: Optional[str] = None
     category: Optional[str] = None
     colours: List[str] = Field(default_factory=list)
@@ -108,7 +109,7 @@ class Product(BaseModel):
     def _clean_text(cls, value: Any) -> Optional[str]:
         return sanitise_text(value)
 
-    @field_validator("product_url", "affiliate_url", "image_url", mode="before")
+    @field_validator("product_url", "image_url", mode="before")
     @classmethod
     def _clean_url(cls, value: Any) -> Optional[str]:
         return sanitise_url(value)

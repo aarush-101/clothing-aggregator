@@ -203,7 +203,7 @@ stored health; it does not contact retailer sites. Runtime states are `pending`,
 
 ### `POST /api/clicks`
 
-Records an outbound click for affiliate attribution. The browser navigates
+Records an outbound click for analytics. The browser navigates
 straight to the retailer; this is a side-channel and must never block.
 
 ```json
@@ -303,7 +303,7 @@ would exclude exactly the cheaper alternatives being asked for.
 ### `Product`
 
 `product_id`, `title`, `description`, `brand`, `retailer`, `retailer_name`,
-`product_url`, `affiliate_url`, `image_url`, `category`, `colours[]`,
+`product_url`, `image_url`, `category`, `colours[]`,
 `materials[]`, `available_sizes[]`, `price`, `original_price`, `currency`,
 `in_stock`, `shipping_destination`, `shipping_cost`, `source_updated_at`,
 `retrieved_at`, `match_score` (0–1), `match_reasons[]`, plus computed
