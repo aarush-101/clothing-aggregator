@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "note": "Maintained retailer website registry. Website verification means the official menswear page was reviewed through web browsing, which may use cached page content. It does not establish working automated product access, current stock, shipping coverage or an enabled Marle integration.",
+  "retailers": [
+    {
+      "key": "theiconic",
+      "name": "THE ICONIC",
+      "website_url": "https://www.theiconic.com.au/",
+      "menswear_url": "https://www.theiconic.com.au/men/",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.theiconic.com.au/men/",
+        "notes": "Official men's fashion section lists clothing categories including shirts, polos, T-shirts and jeans."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "uniqlo_au",
+      "name": "UNIQLO Australia",
+      "website_url": "https://www.uniqlo.com/au/en/",
+      "menswear_url": "https://www.uniqlo.com/au/en/men",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.uniqlo.com/au/en/men",
+        "notes": "Australian men's section lists outerwear, knitwear, shirts, T-shirts, bottoms and jeans."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "countryroad",
+      "name": "Country Road",
+      "website_url": "https://www.countryroad.com.au/",
+      "menswear_url": "https://www.countryroad.com.au/man-clothing/",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.countryroad.com.au/man-clothing/",
+        "notes": "Official Australian men's clothing collection displays menswear listings and AUD prices."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "assemblylabel",
+      "name": "Assembly Label",
+      "website_url": "https://assemblylabel.com/",
+      "menswear_url": "https://assemblylabel.com/collections/mens-shop-all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://assemblylabel.com/collections/mens-shop-all",
+        "notes": "Official men's collection includes shirts, pants, shorts, jackets and knitwear."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "ascolour_au",
+      "name": "AS Colour Australia",
+      "website_url": "https://www.ascolour.com.au/",
+      "menswear_url": "https://www.ascolour.com.au/men/",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.ascolour.com.au/men/",
+        "notes": "Australian men's clothing section lists T-shirts, tanks, sweats and pants."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "universalstore",
+      "name": "Universal Store",
+      "website_url": "https://www.universalstore.com/",
+      "menswear_url": "https://www.universalstore.com/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.universalstore.com/collections/mens",
+        "notes": "Official men's collection displays clothing categories and a menswear product grid."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "industrie",
+      "name": "Industrie",
+      "website_url": "https://www.industrie.com.au/",
+      "menswear_url": "https://www.industrie.com.au/collections/all",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.industrie.com.au/collections/all",
+        "notes": "Official Australian collection is presented as menswear apparel and men's clothing."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "incu",
+      "name": "Incu",
+      "website_url": "https://www.incu.com/",
+      "menswear_url": "https://www.incu.com/collections/mens-clothing",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://www.incu.com/collections/mens-clothing",
+        "notes": "Official men's clothing page provides menswear navigation and a multi-brand collection."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "academybrand",
+      "name": "Academy Brand",
+      "website_url": "https://academybrand.com/",
+      "menswear_url": "https://academybrand.com/collections/mens",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://academybrand.com/collections/mens",
+        "notes": "Official men's navigation leads to a clothing collection with shirts, polos, pants and knitwear."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    },
+    {
+      "key": "cottonon_au",
+      "name": "Cotton On Australia",
+      "website_url": "https://cottonon.com/AU/",
+      "menswear_url": "https://cottonon.com/AU/co/men/",
+      "storefront_market": "AU",
+      "website_verification": {
+        "status": "verified",
+        "reviewed_on": "2026-09-23",
+        "method": "official_page_review_via_web",
+        "evidence_url": "https://cottonon.com/AU/co/men/",
+        "notes": "Australian men's shop-all page lists denim, tees, shirts and pants."
+      },
+      "data_access": {
+        "status": "not_validated",
+        "method": null,
+        "last_checked_on": null,
+        "evidence_url": null
+      }
+    }
+  ]
+}

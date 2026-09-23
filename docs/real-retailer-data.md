@@ -45,6 +45,11 @@ is retained with offline tests and remains disabled by default.
 
 ## Source options to validate
 
+Start with the maintained [retailer registry](retailer-registry.md). Its initial
+ten official menswear websites have dated reviews and source links; all product
+access remains unvalidated. Keep website review and ingestion readiness as
+separate statuses when expanding the list.
+
 | Source | Intended role | Work still required |
 | --- | --- | --- |
 | Retailer or affiliate JSON/XML feed | Scheduled product/offer ingestion | Obtain access where required; validate field mapping, full-snapshot scope, pagination, variants and update/deletion semantics |

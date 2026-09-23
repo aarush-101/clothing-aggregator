@@ -19,6 +19,10 @@ coverage through retailer integrations, accessible product pages and external
 search discovery. Treat worldwide coverage as an expansion goal, not a launch
 claim. Measure which retailers and product categories are actually covered.
 
+Use the checked-in [retailer registry](retailer-registry.md) as the starting
+list for source validation and future retailer identity records. A reviewed
+website still needs validated product access before it can supply ingestion.
+
 ## Why change the constraint?
 
 Jora documents both website crawling and XML/JSON feed ingestion. It stores job

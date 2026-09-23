@@ -54,6 +54,12 @@ zero blocking cannot be guaranteed.
 See the [product-index decision and delivery plan](docs/product-index.md) for
 storage, refresh/removal rules and acceptance checks.
 
+The maintained [retailer registry](apps/api/app/data/retailers.json) starts with
+10 retailers whose official menswear pages have been reviewed. It records URLs,
+review dates and evidence, with product-data access tracked separately and
+still unvalidated. See the [registry guide](docs/retailer-registry.md) to add or
+review entries. Listing a retailer does not enable a live integration.
+
 The pipeline below currently runs against demo sources in the default setup:
 
 ```
@@ -292,6 +298,7 @@ authentication — see [`docs/limitations.md`](docs/limitations.md).
 | [API reference](docs/api.md) | Every endpoint, every SSE payload, error shapes |
 | [Adding a connector](docs/adding-a-connector.md) | Step-by-step, plus the HTML-connector policy |
 | [Affiliate networks](docs/affiliate-networks.md) | Awin, Impact, CJ, Rakuten and direct integrations |
+| [Retailer registry](docs/retailer-registry.md) | Maintained website list, review evidence and separate product-access status |
 | [Retailer-data research](docs/real-retailer-data.md) | Source strategy, historical access findings and remaining validation |
 | [Deployment](docs/deployment.md) | Vercel, Railway/Render/Fly, Neon/Supabase, Upstash |
 | [Limitations](docs/limitations.md) | Known gaps and recommended next steps |
