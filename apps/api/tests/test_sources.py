@@ -14,7 +14,7 @@ from tests.catalogue_fixtures import raw_product, source
 
 def test_registry_has_reviewed_sources_and_separate_enabled_coverage():
     retailers = load_retailers()
-    assert len(retailers) == 14
+    assert len(retailers) == 13
     assert len([r for r in retailers if r.ingestion and r.ingestion.enabled]) == 8
 
 

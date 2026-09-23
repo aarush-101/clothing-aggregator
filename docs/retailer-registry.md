@@ -17,15 +17,15 @@ retailer website with a menswear section. The initial reviews used web browsing,
 which may return cached page content. They were not live access benchmarks
 from Marle's backend.
 
-Four multi-brand stores were added the same day: Highs and Lows, Up There,
-Culture Kings and General Pants Co., chosen for brand overlap with existing
+Three multi-brand stores were added the same day: Highs and Lows, Up There
+and General Pants Co., chosen for brand overlap with existing
 sources so duplicates can be merged.
 
 `data_access.status` is tracked separately. Assembly Label, Academy Brand,
 Industrie, Universal Store, Incu, Highs and Lows, Up There and General Pants Co.
 have validated public collection imports, with evidence in
-[the live report](live-validation.md). Culture Kings is `blocked`: its robots
-rules disallow paginated collection requests. The other five remain
+[the live report](live-validation.md). Culture Kings was checked but removed
+because its robots rules disallow paginated collection requests. The other five remain
 `not_validated` and have no enabled ingestion configuration.
 
 Website verification alone does not establish product access or current stock.

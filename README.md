@@ -8,9 +8,8 @@ Universal Store, Incu, Highs and Lows, Up There and General Pants Co.**, without
 an eBay account or shopping API key.
 
 **Status: working initial implementation with limited retailer coverage.**
-Fourteen websites are reviewed in the registry; eight have enabled, tested
-imports. Culture Kings is recorded as blocked (its robots.txt disallows the
-paginated collection URLs); the rest are unconfigured. This does not search every
+Thirteen websites are reviewed in the registry; eight have enabled, tested
+imports. The rest are listed but unconfigured. This does not search every
 retailer on the internet or guarantee current stock and delivery at checkout.
 
 A live import on 2026-09-23 stored **56,715 size/colour offers** (35,497 in

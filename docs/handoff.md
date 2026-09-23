@@ -23,7 +23,7 @@ The user asked for a review and then “fix everything”. Changes since the
 original handoff below (all uncommitted, like the rest):
 
 - **Sources:** added Highs and Lows, Up There and General Pants Co. (multi-brand,
-  overlapping brands). Culture Kings added but `blocked` by robots. 8 enabled,
+  overlapping brands). Culture Kings was removed: its robots rules block paging. 8 enabled,
   56,715 offers, 10,693 listings — see [live validation](live-validation.md).
 - **De-duplication:** fixed false merges (model numbers were dropped, “S/S” was
   noise, colourways merged on first colour) and added the rule that one

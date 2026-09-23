@@ -34,11 +34,7 @@ async def list_retailers(
                 "requires_permission": False,
                 "website_verification": retailer.website_verification,
                 "data_access": retailer.data_access,
-                "state": state.state
-                if state
-                else "blocked"
-                if retailer.data_access.get("status") == "blocked"
-                else "not_configured",
+                "state": state.state if state else "not_configured",
                 "offer_count": state.offer_count if state else 0,
                 "last_success": datetime.fromtimestamp(state.last_success, timezone.utc).isoformat()
                 if state and state.last_success

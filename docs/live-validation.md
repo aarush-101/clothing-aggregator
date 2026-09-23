@@ -22,7 +22,7 @@ table, and all sources were re-imported with `python -m app.ingest --once --forc
 
 Culture Kings passed the manual page-1 check but its robots.txt contains
 `Disallow: /*?*`, which forbids every paginated `?page=` request. The importer
-refused it, as designed; it is recorded as `blocked` and not enabled.
+refused it, as designed, and it was removed from the registry.
 
 Across all in-stock colourways (9,444 cards before grouping), **52 groups merge
 offers from more than one retailer**. A random sample of 15 merged groups were

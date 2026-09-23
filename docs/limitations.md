@@ -4,8 +4,7 @@ The initial implementation searches real, stored retailer inventory. Its
 coverage and operational limits remain explicit.
 
 - **Eight sources:** Assembly Label, Academy Brand, Industrie, Universal Store,
-  Incu, Highs and Lows, Up There and General Pants Co. Culture Kings is blocked
-  by its robots rules; THE ICONIC, UNIQLO, Country Road, AS Colour and Cotton On
+  Incu, Highs and Lows, Up There and General Pants Co. THE ICONIC, UNIQLO, Country Road, AS Colour and Cotton On
   have no adapter (they are not Shopify stores; affiliate product feeds are the
   realistic route). There is no automatic search across the whole internet.
 - **Observed availability:** imports are periodic. Retailer checkout is the

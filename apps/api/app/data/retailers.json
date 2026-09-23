@@ -300,34 +300,6 @@
       }
     },
     {
-      "key": "culturekings",
-      "name": "Culture Kings",
-      "website_url": "https://www.culturekings.com.au/",
-      "menswear_url": "https://www.culturekings.com.au/collections/mens",
-      "storefront_market": "AU",
-      "website_verification": {
-        "status": "verified",
-        "reviewed_on": "2026-09-23",
-        "method": "official_page_review_via_web",
-        "evidence_url": "https://www.culturekings.com.au/collections/mens",
-        "notes": "Australian streetwear retailer; the men's collection includes headwear and watches. Shares 47 Brand, Casio, Converse, Crocs, Dickies, Mitchell & Ness, New Era and Reebok with Universal Store. robots.txt disallows every query-string URL (Disallow: /*?*), so paginated collection JSON cannot be imported; ingestion stays disabled."
-      },
-      "data_access": {
-        "status": "blocked",
-        "method": "shopify_json",
-        "last_checked_on": "2026-09-23",
-        "evidence_url": "https://www.culturekings.com.au/robots.txt"
-      },
-      "ingestion": {
-        "enabled": false,
-        "method": "shopify_json",
-        "collection": "mens",
-        "currency": "AUD",
-        "refresh_seconds": 21600,
-        "max_pages": 60
-      }
-    },
-    {
       "key": "generalpants",
       "name": "General Pants Co.",
       "website_url": "https://www.generalpants.com/",
