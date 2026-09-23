@@ -30,6 +30,14 @@ test.describe('home page', () => {
     await expect(page.getByRole('searchbox')).toBeFocused();
   });
 
+  test('focuses the search field before the app JavaScript runs', async ({ page }) => {
+    // Keystrokes typed while a slow device is still running scripts must land in
+    // the field; this previously made the keyboard test below flaky in CI.
+    await page.route('**/_next/static/**/*.js', (route) => route.abort());
+    await page.goto('/');
+    await expect(page.getByRole('searchbox')).toBeFocused({ timeout: 3000 });
+  });
+
   test('is operable by keyboard alone', async ({ page }) => {
     await page.goto('/');
 

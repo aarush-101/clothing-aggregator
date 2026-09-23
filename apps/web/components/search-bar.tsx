@@ -35,7 +35,9 @@ export function SearchBar({
 
   // Focused imperatively rather than with the `autoFocus` attribute: React
   // adds a client-only `caret-color` style for autofocused inputs, which
-  // produces a hydration mismatch against the server-rendered markup.
+  // produces a hydration mismatch against the server-rendered markup. The
+  // inline script below focuses on a full page load before scripts arrive;
+  // this effect covers client-side navigations, where that script never runs.
   React.useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
@@ -108,6 +110,15 @@ export function SearchBar({
             large ? 'text-base sm:text-lg' : 'text-sm',
           )}
         />
+        {autoFocus ? (
+          // Runs while the HTML is parsed, so keystrokes made before the
+          // JavaScript bundle loads land in the field instead of being lost.
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `document.getElementById(${JSON.stringify(inputId)})?.focus()`,
+            }}
+          />
+        ) : null}
         <Button type="submit" size={large ? 'default' : 'sm'} className="shrink-0">
           Search
         </Button>
