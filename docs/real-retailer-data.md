@@ -32,6 +32,6 @@ possible future source adapters. They are not implemented by adding a registry
 entry alone. Validate access, coverage, variants, pagination, storage and
 update/removal semantics before enabling a new source.
 
-Marle has no dependency on eBay. The current five sources do not require an
+Marle has no dependency on eBay. The current eight sources do not require an
 account or API key. Access requirements for future sources depend on their
 chosen method. No method establishes universal coverage or permanent access.

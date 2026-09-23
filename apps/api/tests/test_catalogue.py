@@ -3,7 +3,7 @@
 import time
 from datetime import timedelta
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from app.db.session import Database
 from app.db.tables import CatalogueOffer, CatalogueSource
@@ -139,3 +139,51 @@ async def test_failed_publication_rolls_back_removal_and_source_state(catalogue)
     assert await catalogue.active_offer_count() == 4
     state = (await catalogue.source_states())[source().key]
     assert state.last_success == before and state.lease_token == token
+
+
+async def test_sql_prefilter_keeps_matching_offers_and_stores_filter_columns(catalogue):
+    await publish(catalogue)
+    async with catalogue.database.session() as session:
+        rows = {
+            row.variant_id: row for row in (await session.scalars(select(CatalogueOffer))).all()
+        }
+    assert rows["102"].price == 100 and rows["102"].size == "m" and rows["102"].in_stock
+    assert " linen " in rows["102"].search_text
+    assert [p.product_id for p in await catalogue.search(parse_query("blue shirt"))] == ["104"]
+    assert await catalogue.search(parse_query("relaxed linen"))
+    assert not await catalogue.search(parse_query("linen trousers"))
+    assert not await catalogue.search(parse_query("black shirt under $60"))
+
+
+async def test_indexed_brands_are_recognised_and_filtered_in_lowercase_prompts(catalogue):
+    await publish(catalogue)
+    wanted = await catalogue.recognise_brands(
+        "fixture brand shirt", parse_query("fixture brand shirt")
+    )
+    assert wanted.brands == ["Fixture Brand"]
+    assert len(await catalogue.search(wanted)) == 2  # black and blue colourways
+    unwanted = await catalogue.recognise_brands(
+        "shirt without fixture brand", parse_query("shirt without fixture brand")
+    )
+    assert unwanted.excluded_brands == ["Fixture Brand"] and not unwanted.brands
+    assert not await catalogue.search(unwanted)
+    other = parse_query("other label shirt").model_copy(update={"brands": ["Other Label"]})
+    assert not await catalogue.search(other)
+
+
+def test_brand_aliases_cover_short_forms_without_generic_words():
+    from app.services.catalogue import _brand_aliases
+
+    aliases = _brand_aliases(
+        {
+            "carhartt wip": ["Carhartt WIP"],
+            "the north face": ["The North Face"],
+            "clothing the gaps": ["Clothing The Gaps"],
+            "nike": ["Nike"],
+            "nike underwear": ["Nike Underwear"],
+        }
+    )
+    assert aliases["carhartt"] == "carhartt wip"
+    assert aliases["north face"] == "the north face"
+    assert "clothing" not in aliases
+    assert aliases["nike"] == "nike"

@@ -79,18 +79,61 @@ describe('ProductCard', () => {
     );
   });
 
-  it('says how many retailers stock a grouped item', () => {
+  it('links to every other retailer stocking a grouped item', () => {
     const group = makeGroup({
       offer_count: 3,
       offers: [
         makeProduct(),
-        makeProduct({ product_id: 'b' }),
-        makeProduct({ product_id: 'c' }),
+        makeProduct({
+          product_id: 'b',
+          retailer: 'harbour',
+          retailer_name: 'Harbour & Hale',
+          price: 129,
+          affiliate_url: 'https://harbour.example/b',
+        }),
+        makeProduct({
+          product_id: 'c',
+          retailer: 'meridian',
+          retailer_name: 'Meridian Menswear',
+          price: 139,
+          affiliate_url: 'https://meridian.example/c',
+        }),
       ],
       retailers: ['Northbound Supply', 'Harbour & Hale', 'Meridian Menswear'],
     });
     render(<ProductCard group={group} position={1} searchId="s1" />);
-    expect(screen.getByText(/Lowest listed price · 3 retailers/)).toBeInTheDocument();
+    expect(screen.getByText('Lowest of 3 retailers')).toBeInTheDocument();
+    const harbour = screen.getByRole('link', { name: /Harbour & Hale/ });
+    expect(harbour).toHaveAttribute('href', 'https://harbour.example/b');
+    expect(screen.getByRole('link', { name: /Meridian Menswear/ })).toBeInTheDocument();
+  });
+
+  it('names the colourway when the title does not', () => {
+    const { rerender } = render(
+      <ProductCard
+        group={makeGroup({}, { title: 'Allday Polo', colours: ['grey'] })}
+        position={1}
+        searchId="s1"
+      />,
+    );
+    expect(screen.getByTestId('product-colour')).toHaveTextContent('grey');
+    rerender(
+      <ProductCard
+        group={makeGroup({}, { title: 'Allday Polo Grey', colours: ['grey'] })}
+        position={1}
+        searchId="s1"
+      />,
+    );
+    expect(screen.queryByTestId('product-colour')).not.toBeInTheDocument();
+  });
+
+  it('does not list a second offer from the same retailer as a comparison', () => {
+    const group = makeGroup({
+      offer_count: 2,
+      offers: [makeProduct(), makeProduct({ product_id: 'b' })],
+    });
+    render(<ProductCard group={group} position={1} searchId="s1" />);
+    expect(screen.queryByTestId('other-offers')).not.toBeInTheDocument();
   });
 
   it('shows free shipping when there is no shipping cost', () => {

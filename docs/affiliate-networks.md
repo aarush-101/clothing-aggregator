@@ -1,8 +1,8 @@
 # Optional affiliate links
 
 Current ingestion reads public retailer collections and uses direct product
-links by default. No affiliate partnership or account is required for the five
-initial sources, and no affiliate feed adapter is currently implemented.
+links by default. No affiliate partnership or account is required for the current
+sources, and no affiliate feed adapter is currently implemented.
 
 The existing click-attribution code remains available. If you have an approved
 retailer/network relationship, set an HTTPS deep-link template by retailer key:

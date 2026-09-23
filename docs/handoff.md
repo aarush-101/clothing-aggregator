@@ -17,7 +17,31 @@ last implementation request was: “make this a working implementation — delet
 old code that is not used.” That work is implemented and verified locally.
 The latest request is this handoff; no additional feature is currently assigned.
 
-## What works now
+## Update — same day, second session
+
+The user asked for a review and then “fix everything”. Changes since the
+original handoff below (all uncommitted, like the rest):
+
+- **Sources:** added Highs and Lows, Up There and General Pants Co. (multi-brand,
+  overlapping brands). Culture Kings added but `blocked` by robots. 8 enabled,
+  56,715 offers, 10,693 listings — see [live validation](live-validation.md).
+- **De-duplication:** fixed false merges (model numbers were dropped, “S/S” was
+  noise, colourways merged on first colour) and added the rule that one
+  retailer's listings never merge. Added colourway-suffix, apostrophe and plural
+  handling. 52 cross-retailer groups now merge; previously 0.
+- **Search speed:** migration `0003_offer_filters` adds filter columns; SQL
+  prefilters before payload decoding. Broad prompts went from ~3.5 s to ~0.2–0.5 s.
+- **Categories:** garment-noun classifier (`classify_category`), new trackpants,
+  singlet, underwear categories and more aliases; brand prefix removed first.
+- **Brands:** prompts are matched against indexed brands (`Catalogue.recognise_brands`).
+- **Offers:** $0–$1 and >90%-off placeholder variants skipped; `default_brand`
+  for Industrie; internal “[MERGED …]” title tags stripped.
+- **UI:** product cards list each other retailer's price with a link, and name
+  the colourway when the title doesn't.
+- Checks: 240 backend tests, 90 frontend tests, 36 browser tests (8 skips),
+  lint/types/build, migration upgrade/downgrade on fresh SQLite.
+
+## What works now (original handoff)
 
 ```text
 Background: reviewed retailer registry → scheduled imports → SQL variant index

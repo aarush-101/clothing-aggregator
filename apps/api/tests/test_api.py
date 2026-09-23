@@ -187,7 +187,7 @@ def test_retailers_endpoint_lists_reviewed_websites(api_client):
     assert retailers
     keys = {retailer["key"] for retailer in retailers}
     assert "assemblylabel" in keys
-    assert sum(r["enabled"] for r in retailers) == 5
+    assert sum(r["enabled"] for r in retailers) == 8
     assert all(retailer["requires_permission"] is False for retailer in retailers)
 
 

@@ -19,6 +19,8 @@ class IngestionConfig(BaseModel):
     currency: str = "AUD"
     refresh_seconds: int = Field(default=21600, ge=3600)
     max_pages: int = Field(default=30, ge=1, le=100)
+    # Own-label stores whose Shopify vendor field is a department, not a brand.
+    default_brand: Optional[str] = None
 
 
 class Retailer(BaseModel):

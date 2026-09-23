@@ -143,6 +143,7 @@ class SearchEngine:
         try:
             stream.publish(EventType.SEARCH_STARTED, search_started_data(query, "index", statuses))
             intent, parser, parse_ms, parse_warnings = await self._resolve_intent(query)
+            intent = await self._catalogue.recognise_brands(query, intent)
             stream.publish(
                 EventType.INTENT_PARSED,
                 intent_parsed_data(intent.model_dump(mode="json"), parser, parse_ms, statuses),

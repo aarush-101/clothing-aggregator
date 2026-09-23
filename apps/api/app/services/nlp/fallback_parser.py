@@ -35,6 +35,7 @@ from app.services.nlp.lexicon import (
     STOPWORDS,
     STYLE_TERMS,
     content_tokens,
+    find_categories,
     find_terms,
     normalise_size,
 )
@@ -366,7 +367,7 @@ def parse_query(query: str) -> SearchIntent:
     if size_span:
         residual = residual[: size_span[0]] + " " + residual[size_span[1] :]
 
-    categories = find_terms(residual, CATEGORY_SYNONYMS)
+    categories = find_categories(residual)
     colours = find_terms(residual, COLOUR_SYNONYMS)
     materials = find_terms(residual, MATERIAL_SYNONYMS)
     fits = find_terms(residual, FIT_SYNONYMS)

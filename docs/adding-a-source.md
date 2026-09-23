@@ -3,6 +3,9 @@
 The running app imports configured sources into SQL. Do not add a new
 search-time connector: searches read the index.
 
+0. Prefer retailers that stock the same brands as existing sources. A
+   single-brand store adds products but never duplicates to merge. Compare
+   page-1 `vendor` values with the brands already indexed.
 1. Add or review the retailer in
    [`retailers.json`](../apps/api/app/data/retailers.json). Record its official
    menswear page and website-review evidence.
@@ -21,6 +24,10 @@ search-time connector: searches read the index.
   "max_pages": 30
 }
 ```
+
+   Add `"default_brand": "Label"` for an own-label store whose vendor field is
+   a department ("Mens") rather than the brand. Check that robots.txt allows
+   `?page=` URLs: a `Disallow: /*?*` rule blocks pagination.
 
 4. Enable it for a controlled import and run
    `python -m app.ingest --once --retailer RETAILER_KEY --force`. Record a dated

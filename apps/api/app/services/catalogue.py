@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from datetime import timedelta
 from typing import Dict, List, Optional
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, distinct, insert, not_, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.config import Settings
@@ -16,12 +17,60 @@ from app.db.tables import CatalogueOffer, CatalogueSource, IngestionRun
 from app.models.intent import SearchIntent
 from app.models.product import Product, utcnow
 from app.services.affiliate import build_affiliate_url
+from app.services.dedupe import normalise_brand
 from app.services.filtering import passes_coarse_filter
-from app.services.nlp.lexicon import normalise_size
+from app.services.nlp.lexicon import (
+    CATEGORY_SYNONYMS,
+    COLOUR_SYNONYMS,
+    FIT_SYNONYMS,
+    MATERIAL_SYNONYMS,
+    OCCASION_TERMS,
+    SEASON_TERMS,
+    STYLE_TERMS,
+    expand_categories,
+    normalise_size,
+)
 from app.services.ranking import passes_hard_filters
 from app.sources.registry import Retailer
 
 LEASE_SECONDS = 300
+BRAND_CACHE_SECONDS = 60
+_NEGATED = re.compile(r"\b(?:no|not|without|except|excluding|avoid|anything but|non)\s*$")
+# A brand called "Linen" or "Black" must not turn every such query into a brand filter.
+_VOCABULARY_TERMS = {
+    term
+    for table in (
+        CATEGORY_SYNONYMS,
+        COLOUR_SYNONYMS,
+        MATERIAL_SYNONYMS,
+        FIT_SYNONYMS,
+        STYLE_TERMS,
+        OCCASION_TERMS,
+        SEASON_TERMS,
+    )
+    for canonical, aliases in table.items()
+    for term in {canonical, *aliases}
+}
+
+
+def search_text(product: Product) -> str:
+    """Lowercased text every relevance filter reads; a superset for SQL LIKE."""
+    parts = [
+        product.title,
+        product.brand,
+        product.category,
+        " ".join(product.colours),
+        " ".join(product.materials),
+        product.description,
+    ]
+    return " " + " ".join(part for part in parts if part).lower() + " "
+
+
+def _any_term(terms) -> Optional[object]:
+    clauses = [
+        CatalogueOffer.search_text.contains(term.lower(), autoescape=True) for term in terms if term
+    ]
+    return or_(*clauses) if clauses else None
 
 
 def apply_freshness(product: Product) -> Product:
@@ -38,6 +87,8 @@ class Catalogue:
         self.database = database
         self.retailers = {r.key: r for r in retailers}
         self.settings = settings
+        self._brands: Dict[str, List[str]] = {}
+        self._brands_loaded = 0.0
 
     async def initialise(self) -> None:
         for key in self.retailers:
@@ -119,6 +170,12 @@ class Catalogue:
                     "variant_id": product.product_id,
                     "category": product.category,
                     "expires_at": product.expires_at.timestamp(),
+                    "price": float(product.price),
+                    "currency": product.currency,
+                    "in_stock": product.in_stock,
+                    "size": normalise_size(product.variant_size or "") or None,
+                    "brand": product.brand,
+                    "search_text": search_text(product),
                     "payload": product.model_dump(mode="json"),
                 }
             )
@@ -183,11 +240,60 @@ class Catalogue:
     async def search(self, intent: SearchIntent) -> List[Product]:
         if intent.gender.value not in {"men", "unisex"}:
             return []
+        if intent.product_categories:
+            intent = intent.model_copy(
+                update={"product_categories": expand_categories(intent.product_categories)}
+            )
         statement = select(CatalogueOffer.payload).where(
-            CatalogueOffer.source_key.in_(self.retailers), CatalogueOffer.expires_at > time.time()
+            CatalogueOffer.source_key.in_(self.retailers),
+            CatalogueOffer.expires_at > time.time(),
+            or_(CatalogueOffer.in_stock.is_(None), CatalogueOffer.in_stock.is_(True)),
         )
+        # SQL narrows to a superset of what the Python filters below accept.
         if intent.product_categories:
             statement = statement.where(CatalogueOffer.category.in_(intent.product_categories))
+        if intent.size:
+            statement = statement.where(
+                CatalogueOffer.size == normalise_size(intent.size),
+                CatalogueOffer.in_stock.is_(True),
+            )
+        if intent.maximum_price is not None:
+            statement = statement.where(
+                or_(
+                    CatalogueOffer.currency != intent.currency,
+                    CatalogueOffer.price <= float(intent.maximum_price),
+                )
+            )
+        if intent.minimum_price is not None:
+            statement = statement.where(
+                or_(
+                    CatalogueOffer.currency != intent.currency,
+                    CatalogueOffer.price >= float(intent.minimum_price),
+                )
+            )
+        if intent.brands or intent.excluded_brands:
+            brands = await self._brand_vocabulary()
+            if intent.brands:
+                statement = statement.where(
+                    CatalogueOffer.brand.in_(_brand_names(brands, intent.brands))
+                )
+            excluded = _brand_names(brands, intent.excluded_brands)
+            if excluded:
+                statement = statement.where(
+                    or_(CatalogueOffer.brand.is_(None), not_(CatalogueOffer.brand.in_(excluded)))
+                )
+        for wanted, table in (
+            (intent.colours, COLOUR_SYNONYMS),
+            (intent.materials, MATERIAL_SYNONYMS),
+        ):
+            if wanted:
+                terms = {term for w in wanted for term in {w, *table.get(w, ())}}
+                statement = statement.where(_any_term(terms))
+        if not (intent.product_categories or intent.colours or intent.materials or intent.brands):
+            keywords = set(intent.all_keywords()) | set(intent.brands)
+            clause = _any_term({part for kw in keywords for part in kw.split()})
+            if clause is not None:
+                statement = statement.where(clause)
         matches: Dict[tuple, List[Product]] = {}
         async with self.database.session() as session:
             for raw in await session.scalars(statement):
@@ -228,6 +334,49 @@ class Catalogue:
             products.append(primary)
         return products
 
+    async def _brand_vocabulary(self) -> Dict[str, List[str]]:
+        """Normalised brand -> stored spellings, from the brands actually indexed."""
+        if time.time() - self._brands_loaded > BRAND_CACHE_SECONDS:
+            async with self.database.session() as session:
+                names = await session.scalars(
+                    select(distinct(CatalogueOffer.brand)).where(
+                        CatalogueOffer.source_key.in_(self.retailers),
+                        CatalogueOffer.brand.is_not(None),
+                    )
+                )
+                vocabulary: Dict[str, List[str]] = {}
+                for name in names:
+                    key = normalise_brand(name)
+                    if key:
+                        vocabulary.setdefault(key, []).append(name)
+            self._brands, self._brands_loaded = vocabulary, time.time()
+        return self._brands
+
+    async def recognise_brands(self, query: str, intent: SearchIntent) -> SearchIntent:
+        """Find indexed brand names in a prompt, e.g. "levis 501 jeans" or "no nike"."""
+        vocabulary = await self._brand_vocabulary()
+        aliases = _brand_aliases(vocabulary)
+        text = f" {normalise_brand(query)} "
+        preferred = list(intent.brands)
+        excluded = list(intent.excluded_brands)
+        taken: List[tuple] = []
+        for alias in sorted(aliases, key=len, reverse=True):
+            key = aliases[alias]
+            if len(alias) < 3 or alias in _VOCABULARY_TERMS:
+                continue
+            start = text.find(f" {alias} ")
+            if start < 0 or any(a <= start + 1 < b for a, b in taken):
+                continue
+            taken.append((start + 1, start + 1 + len(alias)))
+            # Prefer "Levi's" over "LEVIS" for display.
+            name = sorted(vocabulary[key], key=lambda n: (n.isupper() or n.islower(), len(n)))[0]
+            target = excluded if _NEGATED.search(text[:start]) else preferred
+            if not any(normalise_brand(b) == key for b in preferred + excluded):
+                target.append(name)
+        if preferred == intent.brands and excluded == intent.excluded_brands:
+            return intent
+        return intent.model_copy(update={"brands": preferred, "excluded_brands": excluded})
+
     async def active_offer_count(self) -> int:
         from sqlalchemy import func
 
@@ -243,3 +392,54 @@ class Catalogue:
                 )
                 or 0
             )
+
+
+# First words too generic to stand for a brand on their own ("clothing the gaps").
+_GENERIC_FIRST_WORDS = {
+    "american",
+    "clothing",
+    "common",
+    "original",
+    "reality",
+    "service",
+    "universal",
+    "vintage",
+    "museum",
+    "former",
+    "open",
+    "front",
+    "still",
+    "song",
+    "hard",
+    "billy",
+    "kiss",
+    "status",
+}
+
+
+def _brand_aliases(vocabulary: Dict[str, List[str]]) -> Dict[str, str]:
+    """Phrases shoppers type for each brand: its name, without "the", or a distinctive
+    first word shared by one brand family ("carhartt" -> "Carhartt WIP")."""
+    aliases = {key: key for key in vocabulary}
+    for key in vocabulary:
+        if key.startswith("the "):
+            aliases.setdefault(key[4:], key)
+    families: Dict[str, set] = {}
+    for key in vocabulary:
+        first = key.split()[0]
+        if " " in key and len(first) >= 5 and first not in _GENERIC_FIRST_WORDS:
+            families.setdefault(first, set()).add(key)
+    for first, keys in families.items():
+        if first not in aliases and len(keys) == 1:
+            aliases[first] = next(iter(keys))
+    return aliases
+
+
+def _brand_names(vocabulary: Dict[str, List[str]], wanted: List[str]) -> List[str]:
+    """Stored spellings of each wanted brand and its sub-labels ("Nike" -> "Nike ACG")."""
+    keys = {normalise_brand(brand) for brand in wanted} - {""}
+    names = set(wanted)
+    for key, spellings in vocabulary.items():
+        if any(key == k or key.startswith(k + " ") for k in keys):
+            names.update(spellings)
+    return sorted(names)

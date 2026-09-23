@@ -1,5 +1,53 @@
 # Live source validation — 2026-09-23
 
+## Second import: eight sources, cross-retailer matching
+
+Later the same day, four multi-brand Shopify stores were checked for brand
+overlap with the existing sources (robots.txt, `/meta.json` AUD, page-1
+collection JSON, a later empty page, same-host product URL). Three were enabled.
+The schema moved to migration `0003` (filter columns), which rebuilt the offers
+table, and all sources were re-imported with `python -m app.ingest --once --force`.
+
+| Retailer | Collection | Stored variant offers | In stock | Listings |
+| --- | --- | ---: | ---: | ---: |
+| Assembly Label | `mens-shop-all` | 812 | 642 | 136 |
+| Academy Brand | `mens` | 2,561 | 2,058 | 419 |
+| Industrie | `all` | 9,879 | 7,105 | 1,635 |
+| Universal Store | `mens` | 16,958 | 10,667 | 2,811 |
+| Incu | `mens-clothing` | 7,207 | 5,109 | 1,688 |
+| Highs and Lows | `mens-clothing` | 1,655 | 978 | 403 |
+| Up There | `clothing` | 6,934 | 2,799 | 1,697 |
+| General Pants Co. | `mens-clothing` | 10,709 | 6,139 | 1,904 |
+| **Total** | | **56,715** | **35,497** | **10,693** |
+
+Culture Kings passed the manual page-1 check but its robots.txt contains
+`Disallow: /*?*`, which forbids every paginated `?page=` request. The importer
+refused it, as designed; it is recorded as `blocked` and not enabled.
+
+Across all in-stock colourways (9,444 cards before grouping), **52 groups merge
+offers from more than one retailer**. A random sample of 15 merged groups were
+all the same garment, e.g. Carhartt WIP “OG Active Jacket” (Incu, AUD 550) with
+“OG Active Jacket - Black Rinsed” (Highs and Lows, AUD 550), and Norse Projects
+“Teno Cotton Hemp Military Rib Zip Cardigan” (Up There AUD 380, Incu AUD 415).
+Overlap is still limited: many shared brands (Levi's, Dickies) are listed under
+different product names or wash names by different stores and are not merged.
+
+Index query times measured in-process against this database (parse excluded):
+
+| Prompt | Results | Query |
+| --- | ---: | ---: |
+| black linen shirt under $120 | 1 | 30 ms |
+| something black under $50 | 441 | 220 ms (was ~3.4 s) |
+| summer wedding outfit | 542 | 456 ms (was ~4.0 s) |
+| nike t-shirt | 34 | 36 ms |
+| carhartt jacket | 14 groups, 1 cross-retailer | 15 ms |
+| jeans | 663 groups | 743 ms |
+
+A browser session against the running app confirmed merged cards list the other
+retailer's price with a working product link, with no page errors.
+
+## First import: five sources
+
 Environment: local macOS checkout, Python/httpx backend, SQLite persistence,
 ordinary HTTPS with `User-Agent: Marle/0.1 (menswear product index)`. No eBay
 account, provider API key, proxy rotation or browser impersonation was used.

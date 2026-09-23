@@ -17,9 +17,15 @@ retailer website with a menswear section. The initial reviews used web browsing,
 which may return cached page content. They were not live access benchmarks
 from Marle's backend.
 
+Four multi-brand stores were added the same day: Highs and Lows, Up There,
+Culture Kings and General Pants Co., chosen for brand overlap with existing
+sources so duplicates can be merged.
+
 `data_access.status` is tracked separately. Assembly Label, Academy Brand,
-Industrie, Universal Store and Incu have validated public collection imports,
-with evidence in [the live report](live-validation.md). The other five remain
+Industrie, Universal Store, Incu, Highs and Lows, Up There and General Pants Co.
+have validated public collection imports, with evidence in
+[the live report](live-validation.md). Culture Kings is `blocked`: its robots
+rules disallow paginated collection requests. The other five remain
 `not_validated` and have no enabled ingestion configuration.
 
 Website verification alone does not establish product access or current stock.
@@ -75,7 +81,9 @@ in this file.
 
 `app/sources/registry.py` validates and loads this file at startup. An optional
 `ingestion` object selects the method, men's collection, currency, refresh
-interval and page budget. Only `ingestion.enabled = true` entries run.
+interval and page budget, plus an optional `default_brand` for own-label
+stores whose Shopify vendor is a department name. Only
+`ingestion.enabled = true` entries run.
 Adding a website without this configuration does not start collection.
 
 There is one registry: the old 93-store Shopify candidate configuration has

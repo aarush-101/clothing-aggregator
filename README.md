@@ -1,17 +1,23 @@
 # Marle — menswear search aggregator
 
 Marle turns a clothing prompt into filters, searches a persistent product
-catalogue and links shoppers to the original retailers. It now collects real
-menswear from **Assembly Label, Academy Brand, Industrie, Universal Store and
-Incu**, without an eBay account or shopping API key.
+catalogue, merges the same garment sold by different retailers into one card
+with each retailer's price, and links shoppers to the original retailers. It
+collects real menswear from **Assembly Label, Academy Brand, Industrie,
+Universal Store, Incu, Highs and Lows, Up There and General Pants Co.**, without
+an eBay account or shopping API key.
 
 **Status: working initial implementation with limited retailer coverage.**
-Ten websites are reviewed in the registry; five have enabled, tested imports.
-The remaining websites are listed as unconfigured. This does not search every
+Fourteen websites are reviewed in the registry; eight have enabled, tested
+imports. Culture Kings is recorded as blocked (its robots.txt disallows the
+paginated collection URLs); the rest are unconfigured. This does not search every
 retailer on the internet or guarantee current stock and delivery at checkout.
 
-A live import on 2026-09-23 stored **37,435 size/colour offers** across the five
-sources. These are variants, not 37,435 distinct garments. See the
+A live import on 2026-09-23 stored **56,715 size/colour offers** (35,497 in
+stock) for **10,693 distinct listings** across the eight sources. The multi-brand
+stores were chosen because they stock the same brands (Carhartt WIP, Norse
+Projects, Gramicci, Levi's, Dickies, Nike…), so the same garment can appear at
+several retailers and be merged. See the
 [live validation report](docs/live-validation.md) for evidence and limits.
 
 ## Run locally
@@ -27,8 +33,8 @@ make api          # http://localhost:8000
 make web          # http://localhost:3000
 ```
 
-Try **“black linen shirt under $120”**, **“linen shirt size M under $150”** or
-**“navy shorts size 32”**. Results have real product images, prices and retailer
+Try **“black linen shirt under $120”**, **“linen shirt size M under $150”**,
+**“carhartt jacket”** or **“norse projects”**. Results have real product images, prices and retailer
 links. Empty searches show an empty state; there is no fictional fallback.
 
 With `DATABASE_URL` blank, the app creates a persistent SQLite database at
@@ -61,6 +67,13 @@ Purchase:   result card → original retailer's product/variant page
 - Search reads SQL without outbound retailer requests. It works during source
   outages while unexpired inventory remains. Snapshots and reconnects recheck
   the index so removed or expired offers cannot reappear from a response cache.
+- Filter columns (category, price, size, stock, brand, search text) let SQL
+  narrow offers before ranking; typical searches take 5–750 ms locally.
+- Brand names in a prompt are recognised from the indexed brands, in any case
+  (“levis 501 jeans”, “no nike”), and filter results.
+- The same garment from different retailers is merged using brand, a
+  normalised title and the full colourway. Two listings from one retailer are
+  never merged. Each card links to every retailer's price for that garment.
 - The deterministic prompt parser works without credentials. Anthropic parsing
   remains optional. Ranking is deterministic and exposed at `/api/ranking`.
 

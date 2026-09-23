@@ -144,3 +144,72 @@ def test_empty_input_produces_no_groups():
 def test_group_ids_are_stable_across_runs():
     offers = [product("one"), product("two")]
     assert group_products(offers)[0].group_id == group_products(list(offers))[0].group_id
+
+
+def test_one_retailers_different_listings_never_merge():
+    groups = group_products(
+        [
+            product("one", pid="a", title="1944 501 Jeans", brand="Levi's Vintage Clothing"),
+            product("one", pid="b", title="1933 501 Jeans", brand="Levi's Vintage Clothing"),
+            product("one", pid="c", title="Hampton Linen S/S Shirt"),
+            product("one", pid="d", title="Hampton Linen Shirt"),
+        ]
+    )
+    assert len(groups) == 4
+
+
+def test_same_garment_merges_across_retailers_despite_brand_punctuation():
+    groups = group_products(
+        [
+            product("one", pid="a", title="1944 501 Jeans", brand="Levi's Vintage Clothing"),
+            product("two", pid="b", title="Levis Vintage Clothing 1944 501 Jeans", brand="Levis"),
+            product("two", pid="c", title="1933 501 Jeans", brand="Levi's Vintage Clothing"),
+        ]
+    )
+    assert sorted(g.offer_count for g in groups) == [1, 2]
+
+
+def test_sleeve_length_and_full_colourway_distinguish_garments():
+    assert normalise_title("Hampton S/S Shirt", None, []) != normalise_title(
+        "Hampton Shirt", None, []
+    )
+    assert normalise_title("Hampton Short Sleeve Shirt", None, []) == normalise_title(
+        "Hampton S/S Shirt", None, []
+    )
+    groups = group_products(
+        [
+            product("one", pid="a", colours=["navy", "white"], image_url=None),
+            product("two", pid="b", colours=["navy"], image_url=None),
+        ]
+    )
+    assert len(groups) == 2
+
+
+def test_trailing_colourway_name_does_not_block_a_cross_retailer_match():
+    groups = group_products(
+        [
+            product("one", pid="a", title="OG Active Jacket", brand="Carhartt WIP", image_url=None),
+            product(
+                "two",
+                pid="b",
+                title="OG Active Jacket - Black Rinsed",
+                brand="Carhartt WIP",
+                image_url=None,
+            ),
+            product(
+                "two",
+                pid="c",
+                title="OG Active Jacket - Black Stone Canvas",
+                brand="Carhartt WIP",
+                colours=["black", "beige"],
+                image_url=None,
+            ),
+        ]
+    )
+    assert sorted(g.offer_count for g in groups) == [1, 2]
+
+
+def test_singular_and_plural_garment_names_match():
+    assert normalise_title("874 Original Work Pants", "Dickies", []) == normalise_title(
+        "Dickies 874 Original Work Pant", "Dickies", []
+    )

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { recordClick } from '@/lib/api';
 import { formatPriceCompact, formatRelativeTime, pluralise } from '@/lib/format';
-import type { ProductGroup } from '@/lib/types';
+import type { Product, ProductGroup } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export function ProductCard({
@@ -28,18 +28,41 @@ export function ProductCard({
   const hasDiscount = (product.discount_percent ?? 0) > 0;
   const otherOffers = group.offer_count - 1;
   const titleId = `product-${group.group_id}-title`;
+  // Colourways of one garment are separate cards; name the colour unless the title does.
+  const colourway = product.colours.some((colour) =>
+    product.title.toLowerCase().includes(colour.toLowerCase()),
+  )
+    ? null
+    : product.colours.slice(0, 3).join(' / ');
 
-  const handleOutboundClick = React.useCallback(() => {
-    recordClick({
-      retailer: product.retailer,
-      product_id: product.product_id,
-      destination_url: product.affiliate_url,
-      search_id: searchId ?? undefined,
-      price: product.price,
-      currency: product.currency,
-      position,
+  // One listing per other retailer: the cheapest offer each one has for this garment.
+  const alternatives = React.useMemo(() => {
+    const seen = new Set([product.retailer]);
+    return group.offers.filter((offer) => {
+      if (seen.has(offer.retailer)) return false;
+      seen.add(offer.retailer);
+      return true;
     });
-  }, [product, searchId, position]);
+  }, [group.offers, product.retailer]);
+
+  const recordOutbound = React.useCallback(
+    (offer: Product) => {
+      recordClick({
+        retailer: offer.retailer,
+        product_id: offer.product_id,
+        destination_url: offer.affiliate_url,
+        search_id: searchId ?? undefined,
+        price: offer.price,
+        currency: offer.currency,
+        position,
+      });
+    },
+    [searchId, position],
+  );
+  const handleOutboundClick = React.useCallback(
+    () => recordOutbound(product),
+    [recordOutbound, product],
+  );
 
   return (
     <article
@@ -82,6 +105,14 @@ export function ProductCard({
           <h3 id={titleId} className="font-serif text-[1.0625rem] leading-snug text-foreground">
             {product.title}
           </h3>
+          {colourway ? (
+            <p
+              className="text-xs text-muted-foreground capitalize"
+              data-testid="product-colour"
+            >
+              {colourway}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -119,11 +150,33 @@ export function ProductCard({
         ) : null}
 
         <div className="mt-auto space-y-3 pt-1">
-          {otherOffers > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Lowest listed price · {pluralise(group.retailers.length, 'retailer')} ·{' '}
-              {group.retailers.slice(0, 3).join(', ')}
-            </p>
+          {otherOffers > 0 && alternatives.length > 0 ? (
+            <div className="space-y-1.5" data-testid="other-offers">
+              <p className="text-xs text-muted-foreground">
+                Lowest of {pluralise(alternatives.length + 1, 'retailer')}
+              </p>
+              <ul className="divide-y divide-border border-y border-border">
+                {alternatives.slice(0, 3).map((offer) => (
+                  <li key={`${offer.retailer}-${offer.product_id}`}>
+                    <a
+                      href={offer.affiliate_url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow sponsored"
+                      onClick={() => recordOutbound(offer)}
+                      className="flex items-center justify-between gap-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <span className="min-w-0 truncate">
+                        {offer.retailer_name ?? offer.retailer}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        {formatPriceCompact(offer.price, offer.currency)}
+                        <ArrowUpRight aria-hidden="true" className="ml-1 inline size-3" />
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
 
           <div className="flex items-center justify-between gap-3">

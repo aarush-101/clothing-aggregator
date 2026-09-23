@@ -17,7 +17,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from app.models.product import Product, ProductGroup
-from app.services.nlp.lexicon import COLOUR_SYNONYMS, SIZE_ALIASES, canonicalise_all
+from app.services.nlp.lexicon import COLOUR_SYNONYMS, SIZE_ALIASES, canonicalise_all, find_terms
 
 _PUNCT = re.compile(r"[^\w\s]")
 _WS = re.compile(r"\s+")
@@ -37,7 +37,6 @@ _NOISE_TOKENS = {
     "with",
     "new",
     "season",
-    "ss",
     "aw",
     "fw",
     "collection",
@@ -59,17 +58,32 @@ _MODEL_ID = re.compile(
 _IMAGE_FILE = re.compile(r"/([^/?#]+)(?:\?|#|$)")
 
 
+_SLEEVES = (
+    (re.compile(r"\bs\s*/\s*s\b|\bshort[\s-]+sleeve[sd]?\b"), " ss "),
+    (re.compile(r"\bl\s*/\s*s\b|\blong[\s-]+sleeve[sd]?\b"), " ls "),
+)
+
+
 def normalise_brand(brand: Optional[str]) -> str:
     if not brand:
         return ""
-    text = _PUNCT.sub(" ", brand.lower())
+    # "Levi's" and "Levis" are the same label.
+    text = _PUNCT.sub(" ", brand.lower().replace("'", "").replace("\u2019", ""))
     text = _LEGAL_SUFFIX.sub(" ", text)
     return _WS.sub(" ", text).strip()
 
 
 def normalise_title(title: str, brand: Optional[str], colours: List[str]) -> str:
     """Title reduced to the tokens that identify the garment itself."""
-    text = _PUNCT.sub(" ", (title or "").lower())
+    text = (title or "").lower().replace("'", "").replace("\u2019", "")
+    # "OG Active Jacket - Black Rinsed": a trailing colourway name is not the garment.
+    head, _, suffix = text.replace(" \u2013 ", " - ").rpartition(" - ")
+    if head and find_terms(suffix, COLOUR_SYNONYMS):
+        text = head
+    # Sleeve length distinguishes garments; keep it as one comparable token.
+    for pattern, token in _SLEEVES:
+        text = pattern.sub(token, text)
+    text = _PUNCT.sub(" ", text)
     brand_tokens = set(normalise_brand(brand).split())
     colour_tokens = set()
     for colour in canonicalise_all(colours or [], COLOUR_SYNONYMS):
@@ -82,7 +96,10 @@ def normalise_title(title: str, brand: Optional[str], colours: List[str]) -> str
         and token not in brand_tokens
         and token not in colour_tokens
         and token not in _NOISE_TOKENS
-        and not token.isdigit()
+    ]
+    # "Work Pants" and "Work Pant" name the same garment.
+    tokens = [
+        t[:-1] if len(t) > 3 and t.endswith("s") and not t.endswith("ss") else t for t in tokens
     ]
     return " ".join(sorted(set(tokens)))
 
@@ -114,8 +131,8 @@ def image_fingerprint(image_url: Optional[str]) -> Optional[str]:
 
 
 def _primary_colour(product: Product) -> str:
-    colours = canonicalise_all(product.colours, COLOUR_SYNONYMS)
-    return colours[0] if colours else ""
+    """Every colour of the colourway, so navy/white never matches plain navy."""
+    return "+".join(sorted(set(canonicalise_all(product.colours, COLOUR_SYNONYMS))))
 
 
 def identity_keys(product: Product) -> List[Tuple[str, str]]:
@@ -139,8 +156,15 @@ def identity_keys(product: Product) -> List[Tuple[str, str]]:
 
 
 class _UnionFind:
-    def __init__(self) -> None:
+    """Clusters offers; two listings from one retailer never join a cluster.
+
+    A retailer does not list the same garment twice, so a match between its
+    own listings means the identity keys were too coarse, not a duplicate.
+    """
+
+    def __init__(self, retailers: List[str]) -> None:
         self._parent: Dict[int, int] = {}
+        self._retailers: Dict[int, set] = {i: {r} for i, r in enumerate(retailers)}
 
     def find(self, item: int) -> int:
         parent = self._parent.setdefault(item, item)
@@ -150,8 +174,10 @@ class _UnionFind:
 
     def union(self, left: int, right: int) -> None:
         root_left, root_right = self.find(left), self.find(right)
-        if root_left != root_right:
-            self._parent[root_right] = root_left
+        if root_left == root_right or self._retailers[root_left] & self._retailers[root_right]:
+            return
+        self._parent[root_right] = root_left
+        self._retailers[root_left] |= self._retailers.pop(root_right)
 
 
 def _offer_sort_key(product: Product) -> Tuple[int, float, str]:
@@ -164,16 +190,24 @@ def group_products(products: List[Product]) -> List[ProductGroup]:
     if not products:
         return []
 
-    union = _UnionFind()
-    seen_keys: Dict[Tuple[str, str], int] = {}
+    # One retailer can legitimately return the same listing twice; keep the cheaper.
+    unique: Dict[str, Product] = {}
+    for product in products:
+        existing = unique.get(product.uid)
+        if existing is None or product.total_price < existing.total_price:
+            unique[product.uid] = product
+    products = list(unique.values())
+
+    union = _UnionFind([product.retailer for product in products])
+    seen_keys: Dict[Tuple[str, str], List[int]] = {}
     for index, product in enumerate(products):
         union.find(index)
         for key in identity_keys(product):
-            existing = seen_keys.get(key)
-            if existing is None:
-                seen_keys[key] = index
-            else:
+            holders = seen_keys.setdefault(key, [])
+            # Try each earlier holder: the first may be a same-retailer listing.
+            for existing in holders:
                 union.union(existing, index)
+            holders.append(index)
 
     clusters: Dict[int, List[Product]] = {}
     for index, product in enumerate(products):
@@ -181,13 +215,7 @@ def group_products(products: List[Product]) -> List[ProductGroup]:
 
     groups: List[ProductGroup] = []
     for members in clusters.values():
-        # One retailer can legitimately list the same URL twice; keep one.
-        unique: Dict[str, Product] = {}
-        for product in members:
-            existing = unique.get(product.uid)
-            if existing is None or product.total_price < existing.total_price:
-                unique[product.uid] = product
-        offers = sorted(unique.values(), key=_offer_sort_key)
+        offers = sorted(members, key=_offer_sort_key)
         primary = offers[0]
         groups.append(
             ProductGroup(

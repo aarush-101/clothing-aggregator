@@ -12,6 +12,7 @@ from app.services.nlp.lexicon import (
     MATERIAL_SYNONYMS,
     canonicalise,
     canonicalise_all,
+    classify_category,
     content_tokens,
 )
 
@@ -32,7 +33,7 @@ def passes_coarse_filter(product: Product, intent: SearchIntent) -> bool:
 
     if intent.product_categories:
         product_category = canonicalise(product.category or "", CATEGORY_SYNONYMS)
-        title_category = canonicalise(product.title or "", CATEGORY_SYNONYMS)
+        title_category = classify_category(product.title or "")
         candidates = {c for c in (product_category, title_category) if c}
         if candidates and not _overlaps(candidates, intent.product_categories):
             return False
@@ -53,7 +54,7 @@ def passes_coarse_filter(product: Product, intent: SearchIntent) -> bool:
         if not _overlaps(materials, intent.materials):
             return False
 
-    if not (intent.product_categories or intent.colours or intent.materials):
+    if not (intent.product_categories or intent.colours or intent.materials or intent.brands):
         # Nothing structural to filter on - fall back to keyword overlap so a
         # bare "summer wedding" query still narrows the feed a little.
         keywords = set(intent.all_keywords()) | set(intent.brands)

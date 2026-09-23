@@ -164,12 +164,23 @@ class CatalogueOffer(Base):
     """A variant's price, availability and provenance, published atomically."""
 
     __tablename__ = "catalogue_offers"
-    __table_args__ = (Index("ix_catalogue_offer_search", "source_key", "category", "expires_at"),)
+    __table_args__ = (
+        Index("ix_catalogue_offer_search", "source_key", "category", "expires_at"),
+        Index("ix_catalogue_offer_price", "price"),
+        Index("ix_catalogue_offer_brand", "brand"),
+    )
 
     source_key: Mapped[str] = mapped_column(String(64), primary_key=True)
     variant_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     category: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
     expires_at: Mapped[float] = mapped_column(Float, nullable=False)
+    # Filter columns let SQL discard most offers before payloads are decoded.
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    in_stock: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    size: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    brand: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    search_text: Mapped[str] = mapped_column(Text, nullable=False)
     payload: Mapped[Dict[str, Any]] = mapped_column(JSONColumn, nullable=False)
 
 

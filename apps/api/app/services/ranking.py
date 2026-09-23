@@ -26,7 +26,9 @@ from app.services.nlp.lexicon import (
     MATERIAL_SYNONYMS,
     canonicalise,
     canonicalise_all,
+    classify_category,
     content_tokens,
+    expand_categories,
     find_terms,
     normalise_size,
 )
@@ -114,13 +116,13 @@ def _category_score(product: Product, intent: SearchIntent) -> Tuple[float, Opti
         c
         for c in (
             canonicalise(product.category or "", CATEGORY_SYNONYMS),
-            canonicalise(product.title or "", CATEGORY_SYNONYMS),
+            classify_category(product.title or ""),
         )
         if c
     }
     if not candidates:
         return (0.4, None)
-    hit = candidates & set(wanted)
+    hit = candidates & set(expand_categories(wanted))
     if hit:
         return (1.0, sorted(hit)[0])
     return (0.0, None)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -48,6 +49,7 @@ class Database:
     async def create_all(self) -> None:
         """Create tables directly. Used by tests; production uses Alembic."""
         async with self.engine.begin() as connection:
+            await connection.run_sync(_drop_outdated_offers)
             await connection.run_sync(Base.metadata.create_all)
 
     async def healthy(self) -> bool:
@@ -61,6 +63,24 @@ class Database:
 
     async def dispose(self) -> None:
         await self.engine.dispose()
+
+
+def _drop_outdated_offers(connection) -> None:
+    """Local databases skip Alembic; mirror migration 0003 for an older offers table.
+
+    Offers expire within 48 hours anyway, so they are re-imported rather than
+    converted, and every source becomes due immediately.
+    """
+    inspector = inspect(connection)
+    if not inspector.has_table("catalogue_offers"):
+        return
+    columns = {column["name"] for column in inspector.get_columns("catalogue_offers")}
+    if {"search_text", "brand"} <= columns:
+        return
+    log.info("database.catalogue_offers_rebuilt")
+    connection.execute(text("DROP TABLE catalogue_offers"))
+    if inspector.has_table("catalogue_sources"):
+        connection.execute(text("UPDATE catalogue_sources SET next_due = 0, offer_count = 0"))
 
 
 def build_database(settings: Settings) -> Database:

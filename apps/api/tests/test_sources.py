@@ -14,8 +14,8 @@ from tests.catalogue_fixtures import raw_product, source
 
 def test_registry_has_reviewed_sources_and_separate_enabled_coverage():
     retailers = load_retailers()
-    assert len(retailers) == 10
-    assert len([r for r in retailers if r.ingestion and r.ingestion.enabled]) == 5
+    assert len(retailers) == 14
+    assert len([r for r in retailers if r.ingestion and r.ingestion.enabled]) == 8
 
 
 def test_variant_price_size_colour_stock_and_url_stay_together():
@@ -110,3 +110,39 @@ async def test_unreliable_snapshots_fail_without_retry_storms(mode):
         assert error.value.blocked and error.value.retry_after == 7200
         assert len(calls) == 2
     assert all(url.host == "assemblylabel.com" for url in calls)
+
+
+def test_category_uses_the_garment_noun_not_the_brand_or_first_keyword():
+    raw = raw_product()
+    raw["vendor"] = "Tommy Jeans"
+    raw["title"] = "Tommy Jeans TH Corp CC Holder Black"
+    assert normalise_variants(raw, source(), utcnow())[0].category == "accessories"
+    raw["title"] = "Linen Polo Shirt"
+    assert normalise_variants(raw, source(), utcnow())[0].category == "polo"
+    raw["title"] = "The Del Sur Washed Trackpant - Grain"
+    assert normalise_variants(raw, source(), utcnow())[0].category == "trackpants"
+
+
+def test_placeholder_prices_are_not_offers_and_compare_at_must_exceed_price():
+    raw = raw_product()
+    raw["variants"][0]["price"] = "1.00"
+    raw["variants"][1]["compare_at_price"] = "29.99"
+    raw["variants"][1]["price"] = "2.50"
+    raw["variants"][3]["compare_at_price"] = "40.00"
+    ids = {p.product_id: p for p in normalise_variants(raw, source(), utcnow())}
+    assert set(ids) == {"103", "104"}
+    assert ids["104"].original_price is None
+
+
+def test_own_label_default_brand_replaces_a_department_vendor():
+    retailer = source().model_copy(deep=True)
+    retailer.ingestion.default_brand = "Assembly Label"
+    raw = raw_product()
+    raw["vendor"] = "Mens"
+    assert {p.brand for p in normalise_variants(raw, retailer, utcnow())} == {"Assembly Label"}
+
+
+def test_internal_title_markers_are_removed():
+    raw = raw_product()
+    raw["title"] = "Beta Jacket - Black Sapphire [MERGED 20260806]"
+    assert normalise_variants(raw, source(), utcnow())[0].title == "Beta Jacket - Black Sapphire"

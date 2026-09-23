@@ -8,7 +8,7 @@ title.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 # --------------------------------------------------------------------------
 # Colours
@@ -102,18 +102,110 @@ CATEGORY_SYNONYMS: Dict[str, Set[str]] = {
     "t-shirt": {"t-shirt", "tshirt", "t shirt", "tee", "tees", "t-shirts"},
     "polo": {"polo", "polos", "polo shirt"},
     "knitwear": {"knit", "knitwear", "jumper", "sweater", "cardigan", "pullover", "crewneck knit"},
-    "hoodie": {"hoodie", "hooded sweatshirt", "sweatshirt", "crewneck sweat"},
-    "trousers": {"trousers", "pants", "slacks", "trouser"},
+    "hoodie": {
+        "hoodie",
+        "hoodies",
+        "hood",
+        "hooded sweatshirt",
+        "sweatshirt",
+        "crewneck sweat",
+        "crew sweat",
+        "sweat",
+        "sweats",
+    },
+    "trousers": {"trousers", "pants", "pant", "slacks", "trouser"},
+    "trackpants": {
+        "trackpants",
+        "trackpant",
+        "track pant",
+        "track pants",
+        "sweatpants",
+        "sweatpant",
+        "sweat pant",
+        "sweat pants",
+        "joggers",
+        "jogger",
+        "jogger pant",
+        "trackies",
+    },
     "chinos": {"chino", "chinos"},
-    "jeans": {"jeans", "denim pants", "denim jeans"},
+    "jeans": {"jeans", "jean", "denim pants", "denim jeans", "denim pant", "jean pant"},
     "shorts": {"shorts", "short"},
-    "jacket": {"jacket", "bomber", "harrington", "chore jacket", "windbreaker"},
+    "jacket": {
+        "jacket",
+        "bomber",
+        "harrington",
+        "chore jacket",
+        "windbreaker",
+        "track top",
+        "track jacket",
+        "anorak",
+        "gilet",
+    },
     "blazer": {"blazer", "sport coat", "sports jacket", "suit jacket"},
     "coat": {"coat", "overcoat", "trench", "parka", "puffer"},
     "suit": {"suit", "two-piece", "three-piece"},
-    "shoes": {"shoes", "sneakers", "trainers", "loafers", "boots", "derbies", "oxfords", "sandals"},
-    "accessories": {"belt", "cap", "hat", "beanie", "scarf", "socks", "tie", "sunglasses", "bag"},
-    "swimwear": {"swim shorts", "swimwear", "board shorts", "swim trunks"},
+    "singlet": {"singlet", "singlets", "tank", "tank top", "muscle tank", "muscle tee", "vest top"},
+    "shoes": {
+        "shoes",
+        "shoe",
+        "sneakers",
+        "sneaker",
+        "trainers",
+        "loafers",
+        "boots",
+        "boot",
+        "derbies",
+        "oxfords",
+        "sandals",
+        "slides",
+        "clogs",
+    },
+    "accessories": {
+        "belt",
+        "cap",
+        "hat",
+        "bucket hat",
+        "beanie",
+        "scarf",
+        "socks",
+        "sock",
+        "tie",
+        "sunglasses",
+        "bag",
+        "tote",
+        "backpack",
+        "wallet",
+        "card holder",
+        "cardholder",
+        "cc holder",
+        "necklace",
+        "bracelet",
+        "keyring",
+        "water bottle",
+        "bottle",
+        "watch",
+    },
+    "underwear": {"underwear", "boxer", "boxers", "boxer brief", "briefs", "trunk", "trunks"},
+    "swimwear": {
+        "swim shorts",
+        "swim short",
+        "swimwear",
+        "board shorts",
+        "board short",
+        "boardshorts",
+        "boardshort",
+        "swim trunks",
+        "swim trunk",
+        "boardie",
+        "boardies",
+    },
+}
+
+# Broader shopper terms also include their narrower garment categories.
+CATEGORY_CHILDREN: Dict[str, Set[str]] = {
+    "trousers": {"chinos", "trackpants"},
+    "jacket": {"blazer"},
 }
 
 # --------------------------------------------------------------------------
@@ -390,6 +482,50 @@ def find_terms(text: str, table: Dict[str, Set[str]]) -> List[str]:
     return found
 
 
+def _alias_matches(text: str, table: Dict[str, Set[str]]) -> List[Tuple[int, int, str]]:
+    matches = []
+    for canonical, aliases in table.items():
+        for alias in {canonical, *aliases}:
+            for match in _pattern_for(alias).finditer(text):
+                matches.append((match.start(), match.end(), canonical))
+    # A match inside a longer one ("shorts" in "swim shorts") is not separate.
+    return [
+        m
+        for m in matches
+        if not any(o[0] <= m[0] and m[1] <= o[1] and (o[1] - o[0]) > (m[1] - m[0]) for o in matches)
+    ]
+
+
+def find_categories(text: str) -> List[str]:
+    """Categories named in ``text``, ignoring words inside a longer garment name."""
+    found: List[str] = []
+    for _, _, canonical in sorted(_alias_matches(text or "", CATEGORY_SYNONYMS)):
+        if canonical not in found:
+            found.append(canonical)
+    return found
+
+
+def classify_category(text: str) -> Optional[str]:
+    """The garment a product title describes.
+
+    English titles end with the head noun ("Linen Shirt Jacket" is a jacket,
+    "Short Sleeve Shirt" is a shirt), so the last-ending, longest match wins.
+    """
+    matches = _alias_matches(text or "", CATEGORY_SYNONYMS)
+    if not matches:
+        return None
+    return max(matches, key=lambda m: (m[1], m[1] - m[0]))[2]
+
+
+def expand_categories(categories: Sequence[str]) -> List[str]:
+    expanded = list(categories)
+    for category in categories:
+        for child in sorted(CATEGORY_CHILDREN.get(category, ())):
+            if child not in expanded:
+                expanded.append(child)
+    return expanded
+
+
 def canonicalise(term: str, table: Dict[str, Set[str]]) -> Optional[str]:
     """Map a single free-text term onto its canonical form."""
     if not term:
@@ -435,9 +571,5 @@ def tokenise(text: str) -> List[str]:
 
 
 def content_tokens(text: str) -> List[str]:
-    """Tokens with stopwords and pure numbers removed."""
-    return [
-        token
-        for token in tokenise(text)
-        if token not in STOPWORDS and len(token) > 2 and not token.isdigit()
-    ]
+    """Tokens without stopwords or short words; model numbers like "501" are kept."""
+    return [token for token in tokenise(text) if token not in STOPWORDS and len(token) > 2]

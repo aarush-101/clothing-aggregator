@@ -46,8 +46,26 @@ are not destructively dropped from existing installations.
 
 The API accepts a prompt and starts a short asynchronous search job. The
 optional Anthropic parser or deterministic parser produces `SearchIntent`.
-An indexed SQL query narrows enabled, unexpired offers by category. Existing
-relevance/ranking helpers apply the other constraints and group results.
+Brand names in the prompt are matched against the brands actually indexed
+(normalised, so “levis” finds “Levi's”, “carhartt” finds “Carhartt WIP”; a
+preceding “no/without” excludes the brand).
+
+Each offer row stores filter columns next to its payload: category, price,
+currency, stock, normalised size, brand and a lowercased search text. SQL
+applies category (with children, e.g. trousers includes chinos/trackpants),
+price bounds, size, stock, brand and colour/material/keyword `LIKE` terms as a
+superset prefilter, so only matching payloads are decoded. The Python relevance
+and ranking helpers then apply the exact rules.
+
+Products are categorised at import by the garment noun of the title, with the
+brand prefix removed (“Tommy Jeans CC Holder” is an accessory, “Linen Shirt
+Jacket” an overshirt).
+
+Grouping first collapses a listing's variants per colourway. Cross-retailer
+grouping then merges offers sharing brand + normalised title + full colourway,
+a model number, or an image filename. Title normalisation keeps model numbers
+and sleeve length, drops a trailing “- colourway” suffix and plural endings.
+Two different listings from the same retailer are never merged.
 
 Size-specific searches require a matching available variant. Colour, price,
 stock and the product URL stay attached to that variant. Without a size,

@@ -16,9 +16,9 @@ from protego import Protego
 
 from app.models.product import Product, sanitise_text, sanitise_url, utcnow
 from app.services.nlp.lexicon import (
-    CATEGORY_SYNONYMS,
     COLOUR_SYNONYMS,
     MATERIAL_SYNONYMS,
+    classify_category,
     find_terms,
     normalise_size,
 )
@@ -26,6 +26,16 @@ from app.sources.registry import Retailer
 
 USER_AGENT = "Marle/0.1 (menswear product index)"
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
+MIN_PRICE = Decimal("1.00")
+_INTERNAL_TAG = re.compile(r"\s*\[(?:merged|archived?|old|duplicate)\b[^\]]*\]", re.I)
+
+
+def _decimal(value) -> Optional[Decimal]:
+    try:
+        number = Decimal(str(value))
+    except (ArithmeticError, ValueError):
+        return None
+    return number if value is not None and number.is_finite() and number >= 0 else None
 
 
 class SourceError(RuntimeError):
@@ -47,7 +57,8 @@ def retry_delay(value: Optional[str]) -> float:
 
 def normalise_variants(raw: dict, retailer: Retailer, observed_at: datetime) -> List[Product]:
     """One stored offer per variant. A bad record fails the snapshot, never deletes data."""
-    title = sanitise_text(raw.get("title"))
+    # Some stores leave internal merge/archive markers in public titles.
+    title = sanitise_text(_INTERNAL_TAG.sub("", str(raw.get("title") or "")))
     product_id = str(raw.get("id") or "")
     handle = raw.get("handle")
     if not title or not product_id or not isinstance(handle, str) or not handle:
@@ -62,8 +73,13 @@ def normalise_variants(raw: dict, retailer: Retailer, observed_at: datetime) -> 
     brand = sanitise_text(raw.get("vendor"))
     if brand and brand.lower() in {"mens", "men", "womens", "women", "unisex"}:
         brand = None  # Some stores use vendor as a department, not a brand.
+    brand = brand or retailer.ingestion.default_brand
     description = sanitise_text(raw.get("body_html"))
-    categories = find_terms(title, CATEGORY_SYNONYMS) or find_terms(product_type, CATEGORY_SYNONYMS)
+    # Multi-brand titles lead with the brand; "Tommy Jeans ... Card Holder" is not jeans.
+    garment = title
+    if brand and title.lower().startswith(brand.lower()):
+        garment = title[len(brand) :]
+    category = classify_category(garment) or classify_category(product_type)
     materials = find_terms(description or "", MATERIAL_SYNONYMS)
     options = {
         str(option.get("name", "")).lower(): int(option.get("position", index + 1))
@@ -84,6 +100,11 @@ def normalise_variants(raw: dict, retailer: Retailer, observed_at: datetime) -> 
         price = Decimal(str(variant.get("price")))
         if not price.is_finite() or price < 0:
             raise SourceError(f"Product {product_id} has an invalid price")
+        original = _decimal(variant.get("compare_at_price"))
+        original = original if original is not None and original > price else None
+        # Free gifts and placeholder variants ($0-$1, or >90% off) are not real offers.
+        if price <= MIN_PRICE or (original is not None and price < original * Decimal("0.1")):
+            continue
         colour = str(variant.get(f"option{colour_pos}") or "") if colour_pos else ""
         colours = find_terms(colour, COLOUR_SYNONYMS) if colour else []
         colours = colours or find_terms(title, COLOUR_SYNONYMS)
@@ -110,12 +131,12 @@ def normalise_variants(raw: dict, retailer: Retailer, observed_at: datetime) -> 
                 product_url=url,
                 affiliate_url=url,
                 image_url=sanitise_url(variant_image.get("src") or image),
-                category=categories[0] if categories else product_type.lower() or None,
+                category=category or product_type.lower() or None,
                 colours=colours,
                 materials=materials,
                 available_sizes=[size] if size and stock is True else [],
                 price=price,
-                original_price=variant.get("compare_at_price"),
+                original_price=original,
                 currency=retailer.ingestion.currency,
                 in_stock=stock,
                 shipping_destination=None,
