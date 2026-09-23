@@ -34,7 +34,9 @@ from app.sources.registry import Retailer
 
 LEASE_SECONDS = 300
 BRAND_CACHE_SECONDS = 60
-_NEGATED = re.compile(r"\b(?:no|not|without|except|excluding|avoid|anything but|non)\s*$")
+_NEGATED = re.compile(
+    r"\b(?:no|not|without|except|excluding|avoid|anything but|non)(?:\s+(?:from|by))?\s*$"
+)
 # A brand called "Linen" or "Black" must not turn every such query into a brand filter.
 _VOCABULARY_TERMS = {
     term

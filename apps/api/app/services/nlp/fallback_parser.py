@@ -84,7 +84,10 @@ _BRAND_SIMILARITY_TRIGGERS = re.compile(
     re.U,
 )
 _BRAND_EXCLUSION_TRIGGERS = re.compile(
+    # "not Nike" and "not from Nike" both exclude; the second must not also be
+    # read as the preference "from Nike".
     r"\b(?:not|no|except|excluding|avoid|without|other than|apart from)\s+"
+    r"(?:(?:from|by|made by)\s+)?"
     r"([A-Z][\w&'.-]*(?:\s+[A-Z][\w&'.-]*){0,2})",
     re.U,
 )

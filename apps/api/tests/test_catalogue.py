@@ -224,3 +224,10 @@ def test_one_display_spelling_per_label():
     assert best("barney cools", {"B.Cools": 800, "Barney Cools": 100}) == "Barney Cools"
     assert best("carhartt wip", {"Carhartt WIP": 900, "Carhartt Wip": 50}) == "Carhartt WIP"
     assert best("stussy", {"Stussy": 400, "Stüssy": 300, "STUSSY": 50}) == "Stüssy"
+
+
+async def test_lowercase_not_from_brand_is_an_exclusion(catalogue):
+    await publish(catalogue)
+    query = "shirt not from fixture brand"
+    intent = await catalogue.recognise_brands(query, parse_query(query))
+    assert intent.excluded_brands == ["Fixture Brand"] and not intent.brands

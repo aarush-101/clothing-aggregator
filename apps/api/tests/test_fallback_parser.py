@@ -156,3 +156,9 @@ def test_parser_rejects_empty_input():
 )
 def test_explicit_letter_sizes(query, expected):
     assert parse_query(query).size == expected
+
+
+def test_not_from_a_brand_excludes_it_rather_than_preferring_it():
+    intent = parse_query("swim shorts not from Billabong")
+    assert intent.excluded_brands == ["billabong"]
+    assert intent.brands == []
